@@ -1,0 +1,12 @@
+name,value,note
+window_start,2025-10-01,first month of trailing 12-month window
+window_end,2026-09-01,last Census month
+completed_sold_12m_k,386.0,"NHSDPC sum, NSA, thousands"
+implied_completions_in_12m_k,375.0,completed sold + change in completed for sale
+under_construction_now_k,250.0,NHFSEPUCS
+under_construction_year_ago_k,262.0,NHFSEPUCS
+pipeline_ratio,0.9541984732824428,under construction now / a year ago
+pipeline_change_pct,-4.580152671755721,
+total_sales_yoy_pct,-5.3221288515406195,HSN1F latest month vs a year earlier
+breakeven_sales_drop_pct,-2.849740932642487,change in finished-home sales that holds the stock flat with completions unchanged
+completed_sold_share_of_sales_pct,58.212894306899585,completed homes sold / average annual sales rate over the window

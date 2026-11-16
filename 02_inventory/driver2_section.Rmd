@@ -1,0 +1,324 @@
+---
+title: "Driver 2: Inventory and supply"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering}
+  \captionsetup[figure]{font={footnotesize,it}}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \definecolor{calloutfill}{HTML}{FFF3CD}
+  \definecolor{calloutline}{HTML}{D39B2F}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \setlength{\headsep}{8pt}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{5pt}{1pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{callout}{colback=calloutfill,colframe=calloutline,boxrule=0.6pt,arc=0pt,left=6pt,right=6pt,top=4pt,bottom=4pt}
+  \renewcommand{\maketitle}{}
+---
+
+<!--
+Numbers are NOT typed here: they are read from the CSVs in outputs/ through inline R code.
+Knit from the 02_inventory folder (relative paths outputs/...). Reads only; no downloading.
+Data layer: scripts/d2_build_data.py (outputs/d2_*.csv) and scripts/d2_robustness_outlook.py
+  (d2_robustness.csv, d2_inventory_outlook.csv, d2_outlook_key.csv).
+Verification gate: builder spec counts appear (page 1 bullet and appendix chart) only for builders whose rows
+  in VERIFICATION_LOG.csv are ALL marked confirmed or corrected. Until then both are left out of the PDF.
+Packages needed: ggplot2, dplyr, readr, tidyr, scales, lubridate, knitr, kableExtra, patchwork.
+LaTeX packages: tcolorbox, fancyhdr, titlesec, caption, float, xcolor.
+Scenario weights are read from ../01_affordability/outputs/pi_scenario_bins.csv (52-week row); if that folder
+is missing, the weights fall back to "n/a".
+-->
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({library(ggplot2); library(dplyr); library(readr); library(tidyr)
+  library(scales); library(lubridate); library(knitr); library(kableExtra); library(patchwork)})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+  out.width = if (knitr::is_latex_output()) "78%" else "100%",
+  fig.align = "center", fig.width = 9, fig.height = 4.5, dpi = 160, dev = "png")
+NAVY <- "#1f3350"; RED <- "#b5524f"; GREY <- "#8a8f98"   # red = rates / today / stress; navy = everything else
+LNAVY <- "#7d8fb0"; PALE <- "#c9d1e0"
+theme_d1 <- function() {
+  theme_classic(base_size = 11) +
+    theme(text = element_text(colour = "#222222"),
+      panel.grid.major.y = element_line(colour = "#dddddd", linewidth = 0.4),
+      panel.grid.major.x = element_blank(),
+      axis.line = element_line(colour = "#222222", linewidth = 0.5),
+      axis.ticks = element_line(colour = "#222222", linewidth = 0.4),
+      axis.text = element_text(colour = "#555555", size = 9),
+      axis.title = element_text(colour = "#111111", size = 10),
+      plot.title = element_text(face = "bold", size = 12.5, colour = NAVY, hjust = 0.5, margin = margin(b = 8)),
+      plot.title.position = "panel",
+      plot.caption = element_text(colour = "#777777", size = 11, hjust = 0, margin = margin(t = 10)),
+      plot.caption.position = "plot",
+      legend.position = "top", legend.justification = "left", legend.title = element_blank(),
+      legend.key = element_blank(), legend.text = element_text(size = 9), strip.background = element_blank())
+}
+# bordered grid (light grey rules on every cell), navy header, bold first column
+# column_spec with cell text centred vertically (needs kableExtra 1.2+; falls back to top-aligned on older versions)
+col_spec <- function(...) if ("latex_valign" %in% names(formals(kableExtra::column_spec))) kableExtra::column_spec(..., latex_valign = "m") else kableExtra::column_spec(...)
+styled <- function(df, align, widths, bold_first = TRUE, font_size = 8.5, caption = NULL) {
+  k <- kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE, caption = caption) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  n <- length(widths)
+  for (i in seq_len(n)) k <- col_spec(k, i, width = paste0(widths[i], "cm"), bold = bold_first && i == 1,
+                                         border_left = i == 1, border_right = i == n)
+  k
+}
+
+# ---- data (CSVs only) -------------------------------------------------------------------
+O  <- "outputs"
+kn   <- read_csv(file.path(O, "d2_key_numbers.csv"), show_col_types = FALSE)
+kv   <- function(n) kn$value[kn$name == n]
+ko   <- function(n) as.Date(kn$asof[kn$name == n])
+stg  <- read_csv(file.path(O, "d2_inventory_by_stage.csv"), show_col_types = FALSE) %>% mutate(date = as.Date(date))
+cuts <- read_csv(file.path(O, "d2_cuts_vs_completed.csv"), show_col_types = FALSE) %>% mutate(date = as.Date(date))
+tst  <- read_csv(file.path(O, "d2_test_results.csv"), show_col_types = FALSE)
+rb   <- read_csv(file.path(O, "d2_robustness.csv"), show_col_types = FALSE)
+ol   <- read_csv(file.path(O, "d2_inventory_outlook.csv"), show_col_types = FALSE)
+okey <- read_csv(file.path(O, "d2_outlook_key.csv"), show_col_types = FALSE, col_types = cols(.default = "c"))
+okv  <- function(n) as.numeric(okey$value[okey$name == n])
+bs   <- read_csv(file.path(O, "d2_builder_specs.csv"), show_col_types = FALSE) %>% mutate(period_end = as.Date(period_end))
+
+# ---- NAHB monthly survey history: incentive streak, price-cut record, confidence index ------
+source("../06_appendix_sources/cite.R")   # numbered citations: cite("key")
+nahb_a <- read_csv("data/manual/nahb_price_cuts_backfill_STAGING.csv", show_col_types = FALSE, col_types = cols(.default = "c"))
+nahb_b <- read_csv("../01_affordability/data/manual/nahb_hmi_price_cuts_incentives.csv", comment = "#",
+                   show_col_types = FALSE, col_types = cols(.default = "c"))
+nahb_m <- bind_rows(nahb_a, nahb_b) %>%
+  transmute(month = as.Date(month),
+            inc = suppressWarnings(as.numeric(share_using_incentives_pct)),
+            cut = suppressWarnings(as.numeric(share_cut_prices_pct)),
+            hmi = suppressWarnings(as.numeric(hmi_as_published)))
+inc_s <- nahb_m %>% filter(!is.na(inc)) %>% group_by(month) %>% summarise(inc = max(inc), .groups = "drop") %>% arrange(month)
+cut_s <- nahb_m %>% filter(!is.na(cut)) %>% group_by(month) %>% summarise(cut = max(cut), .groups = "drop") %>% arrange(month)
+inc_below  <- which(inc_s$inc < 60)
+inc_streak <- nrow(inc_s) - (if (length(inc_below) > 0) max(inc_below) else 0)   # months in a row at or above 60%
+hmi_s   <- nahb_m %>% filter(!is.na(hmi)) %>% arrange(month)
+hmi_now <- hmi_s$hmi[nrow(hmi_s)]                                                 # latest NAHB/Wells Fargo HMI
+cut_is_high   <- cuts$share_cut_pct[which.max(cuts$date)] >= max(cuts$share_cut_pct, na.rm = TRUE)
+cut_first_lab <- format(min(cuts$date), "%B %Y")
+
+# ---- verification gate: only builders with every logged row confirmed or corrected -------
+vlog <- if (file.exists("VERIFICATION_LOG.csv")) read_csv("VERIFICATION_LOG.csv", show_col_types = FALSE, col_types = cols(.default = "c")) else NULL
+ok_builders <- if (is.null(vlog)) character(0) else vlog %>% filter(series != "NAHB") %>% group_by(series) %>%
+  summarise(ok = all(tolower(status) %in% c("confirmed", "corrected")), .groups = "drop") %>% filter(ok) %>% pull(series)
+bs <- bs %>% filter(builder %in% ok_builders)
+show_specs <- nrow(bs) > 0
+
+# ---- three-scenario framework (model-derived scenario weights, Driver 1) -----------------
+d1f <- file.path("..", "01_affordability", "outputs", "pi_scenario_bins.csv")
+d1_ok <- file.exists(d1f)
+if (d1_ok) { b52 <- read_csv(d1f, show_col_types = FALSE); b52 <- b52[b52$horizon_weeks == 52, ]
+  w_up <- 100 * b52[["<6.25"]]; w_base <- 100 * (b52[["6.25-6.75"]] + b52[["6.75-7.50"]] + b52[["7.50-8.00"]])
+  w_down <- 100 * b52[[">8.00"]]; w_lt625 <- 100 * b52[["<6.25"]] } else { w_up <- w_base <- w_down <- w_lt625 <- NA }
+
+# ---- numbers used in the text -----------------------------------------------------------
+p0   <- function(x) sprintf("%.0f%%", x)
+k0   <- function(x) sprintf("%.0fk", x)
+pc1  <- function(x) sprintf("%.1f%%", x)
+p0n  <- function(x) ifelse(is.na(x), "n/a", sprintf("%.0f%%", x))
+pv   <- function(p) ifelse(p < 0.001, "< 0.001", sprintf("%.2f", p))
+tm   <- function(pat) tst[startsWith(tst$model, pat), ]
+rm_  <- function(pat) rb[startsWith(rb$model, pat), ]
+tA <- tm("(a)"); tB <- tm("(b)"); tE <- tm("(e)")
+rF <- rb[grepl("^\\(f", rb$model), ]; rG <- rm_("(g)")
+sep_lab <- format(ko("completed_for_sale_k"), "%b-%Y"); oct_lab <- format(ko("nahb_share_cutting_prices_pct"), "%b-%Y")
+peak_lab <- format(ko("completed_peak_since_1999_k"), "%Y"); hi_lab <- format(ko("completed_peak_since_2022_k"), "%b-%Y")
+comp   <- kv("completed_for_sale_k"); comp_avg <- kv("completed_2018_19_avg_k")
+ms     <- kv("months_supply"); ms_avg <- kv("months_supply_2018_19_avg")
+comp_hi  <- kv("completed_peak_since_2022_k")
+pct_below_peak <- abs(kv("completed_pct_below_peak_since_1999"))
+yoy_k <- abs(kv("completed_change_vs_year_ago_k"))
+# outlook rows
+orow <- function(pat) ol[startsWith(ol$case, pat), ]
+o_rep <- orow("Base: last"); o_pipe <- orow("Base: completions"); o_str <- orow("Stress")
+# builders (only if confirmed): latest per-closing vs a year earlier
+builder_bullet <- ""
+if (show_specs) {
+  byoy <- bs %>% group_by(builder) %>% arrange(period_end) %>%
+    summarise(now = last(per_close), ago = per_close[which.min(abs(as.numeric(period_end - (last(period_end) - 365))))],
+              stale = as.numeric(max(bs$period_end) - last(period_end)) > 215, .groups = "drop") %>% filter(!stale)
+  if (nrow(byoy) > 0) builder_bullet <- paste0("- Builders' own filings show the same: finished specs per closing, now vs a year ago, are ",
+    paste(sprintf("%s %.2f vs %.2f", byoy$builder, byoy$now, byoy$ago), collapse = "; "), " (Exhibit A2.1).")
+}
+lab_out <- "Exhibit 2.4"; lab_specs <- "Exhibit A2.1"; lab_tests <- if (show_specs) "Exhibit A2.2" else "Exhibit A2.1"
+```
+
+```{=latex}
+\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}
+{\footnotesize\bfseries\color{teal}DRIVER 2 | INVENTORY AND SUPPLY}
+
+{\fontsize{20}{24}\selectfont\bfseries\color{navy} Finished homes continue to put pressure on builders' margins}
+
+\vspace{4pt}
+\begin{callout}
+```
+
+Builders are carrying **`r k0(comp)` finished unsold homes**, `r p0(kv("completed_pct_above_2018_19_avg"))` above 2018-19 levels. Mortgage rates are unlikely to fall enough to bring buyers back in large numbers, and builders are using price cuts and incentives, such as mortgage-rate buydowns, to move excess inventory, causing margins to fall (Driver 4). Even if finished inventory declines at last year's pace, it would still be about `r sprintf("%.0f%%", o_rep$ending_vs_2018_19_avg_pct)` above 2018-19 levels. Lower finished-home supply could reduce one source of discounting pressure, but not remove it.
+
+```{=latex}
+\end{callout}
+
+```
+
+```{r ex21a, fig.height=3.4, out.width="88%", fig.cap="Exhibit 2.1. Homes for sale by stage."}
+# left: stacked area by stage, 2018 onward
+sl <- stg %>% filter(date >= as.Date("2018-01-01")) %>%
+  transmute(date, Completed = completed_k, `Under construction` = under_construction_k, `Not started` = not_started_k) %>%
+  pivot_longer(-date, names_to = "stage", values_to = "k") %>%
+  mutate(stage = factor(stage, levels = c("Not started", "Under construction", "Completed")))
+lst <- stg[which.max(stg$date), ]
+peak_k <- kv("completed_peak_since_1999_k"); x_end <- lst$date; x0 <- as.Date("2018-01-01")
+p1 <- ggplot(sl, aes(date, k, fill = stage)) +
+  geom_area(alpha = 0.92, colour = NA) +
+  geom_segment(aes(x = x0, xend = x_end, y = peak_k, yend = peak_k), inherit.aes = FALSE, colour = "#222222", linetype = "dashed", linewidth = 0.5) +
+  annotate("label", x = x0 + 40, y = peak_k, hjust = 0, vjust = -0.15, size = 2.6, label.size = 0, fill = "white",
+           label = sprintf("%s completed peak: %s", peak_lab, k0(peak_k)), colour = "#222222") +
+  annotate("text", x = x_end + 25, hjust = 0, size = 2.7, colour = "#333333",
+           y = c(lst$completed_k / 2, lst$completed_k + lst$under_construction_k / 2,
+                 lst$completed_k + lst$under_construction_k + lst$not_started_k / 2),
+           label = c(sprintf("Completed\n%s", k0(lst$completed_k)), sprintf("Under constr.\n%s", k0(lst$under_construction_k)),
+                     sprintf("Not started\n%s", k0(lst$not_started_k)))) +
+  annotate("text", x = x0 + 40, y = 570, hjust = 0, vjust = 1, size = 2.7, colour = "#333333",
+           label = sprintf("Total months' supply %.1f vs %.1f avg 2018-19", ms, ms_avg)) +
+  scale_fill_manual(values = c(Completed = RED, `Under construction` = LNAVY, `Not started` = PALE), guide = "none") +
+  scale_x_date(breaks = as.Date(c("2018-01-01", "2020-01-01", "2022-01-01", "2024-01-01", "2026-01-01")), date_labels = "%Y", expand = expansion(mult = c(0.01, 0.20))) +
+  scale_y_continuous(limits = c(0, 580), expand = c(0, 0)) +
+  labs(title = sprintf("Finished homes for sale are %s above 2018-19 levels", p0(kv("completed_pct_above_2018_19_avg"))), x = NULL, y = "Homes for sale (thousands)",
+       caption = paste0("Source: Census / HUD New Residential Sales ", cite("census_nrs"), ".")) +
+  theme_d1() + theme(plot.title = element_text(size = 10, face = "bold", colour = NAVY, hjust = 0.5, margin = margin(b = 4)))
+p1
+```
+
+## Finished homes are the costly part of the supply
+
+- **`r k0(comp)` completed unsold homes** (`r sep_lab`): `r p0(kv("completed_pct_above_2018_19_avg"))` above the 2018-19 average of `r k0(comp_avg)`, but `r k0(yoy_k)` fewer than a year ago and `r p0(pct_below_peak)` below the `r peak_lab` peak of `r k0(peak_k)`. Total months' supply is **`r sprintf("%.1f", ms)`** vs `r sprintf("%.1f", ms_avg)` in 2018-19, as sales fell `r pc1(abs(kv("new_home_sales_yoy_pct")))` y/y; finished homes alone are about `r sprintf("%.1f", lst$completed_months_supply)` months of sales. `r cite("census_nrs")`
+- Finished homes cost builders money through property taxes, insurance, maintenance and financing costs. The longer these homes remain unsold, the more pressure builders face to lower prices.
+`r builder_bullet`
+
+## Finished inventory is expected to decline over the next 6-12 months, but remain above pre-pandemic levels
+
+Over the last 12 months builders sold `r k0(okv("completed_sold_12m_k"))` finished homes and added `r k0(okv("implied_completions_in_12m_k"))`, so the stock fell `r k0(yoy_k)`. If sales hold their recent pace, as the base case assumes, finished inventory would keep declining over the next 12 months, to about `r k0(o_rep$ending_k)`, still `r p0(o_rep$ending_vs_2018_19_avg_pct)` above the 2018-19 average of `r k0(comp_avg)`. Fewer homes under construction (`r pc1(abs(okv("pipeline_change_pct")))` below a year ago) would take it lower, to about `r k0(o_pipe$ending_k)`. If finished-home sales instead fall as much as total new-home sales did (`r pc1(abs(kv("new_home_sales_yoy_pct")))`) while completions hold, it would rebuild to about `r k0(o_str$ending_k)`. Even in the base case, finished inventory stays above 2018-19 levels, consistent with continued pressure to discount.
+
+## What would change this view
+
+- **Rates fall below 6.25% (about `r p0n(w_lt625)` probability).** A decline this large could bring more buyers back and help builders reduce finished inventory faster.
+- **Finished stock rebuilds.** If demand weakens further, as in the stress case above, finished inventory could rise to about `r k0(o_str$ending_k)`, near its `r hi_lab` high of `r k0(comp_hi)`, which would add pressure for larger discounts and on margins. This is a sales-stress case; the report does not estimate which mortgage rate would produce it.
+
+## Builders cut prices more when finished inventory is higher
+
+```{r ex21b, fig.height=3.4, out.width="88%", fig.cap=paste0("Exhibit 2.2. Price cuts vs completed months' supply (n = ", tB$n, "; ", oct_lab, " at ", sep_lab, " supply).")}
+# right: scatter and level fit
+fit <- function(x) tB$intercept + tB$slope * x
+cs <- cuts %>% filter(has_census == 1)
+oc <- cuts %>% filter(has_census == 0)
+xr <- range(cs$completed_months_supply)
+ln <- tibble(x = xr, y = fit(xr))
+p2 <- ggplot(cs, aes(completed_months_supply, share_cut_pct)) +
+  geom_line(data = ln, aes(x, y), colour = GREY, linetype = "dashed", linewidth = 0.7, inherit.aes = FALSE) +
+  geom_point(colour = NAVY, alpha = 0.75, size = 1.8) +
+  geom_segment(aes(x = lst$completed_months_supply, xend = lst$completed_months_supply, y = oc$fitted_at_latest_inventory, yend = oc$share_cut_pct),
+               data = oc, colour = RED, linetype = "dotted", linewidth = 0.6, inherit.aes = FALSE) +
+  geom_point(data = oc, aes(lst$completed_months_supply, share_cut_pct), shape = 21, fill = "white", colour = RED, size = 3, stroke = 1.2, inherit.aes = FALSE) +
+  annotate("text", x = lst$completed_months_supply - 0.05, y = oc$share_cut_pct, hjust = 1, size = 2.7, colour = "#333333",
+           label = sprintf("%s: %s", format(oc$date, "%b-%Y"), p0(oc$share_cut_pct))) +
+  annotate("text", x = max(cs$completed_months_supply), y = 3, hjust = 1, vjust = 0, size = 2.7, colour = "#333333",
+           label = sprintf("Level fit, R² = %.2f, n = %d: correlation does not establish causality", tB$r2, tB$n)) +
+  scale_y_continuous(limits = c(0, 52), expand = c(0, 0)) +
+  labs(title = "More finished supply, more builders cutting", x = "Completed months' supply (months)", y = "% of builders cutting prices",
+       caption = paste0("Sources: NAHB / Wells Fargo HMI ", cite("nahb_hmi"), "; Census / HUD New Residential Sales ", cite("census_nrs"), ".")) +
+  theme_d1() + theme(plot.title = element_text(size = 10, face = "bold", colour = NAVY, hjust = 0.5, margin = margin(b = 4)))
+p2
+```
+
+- **Hypothesis test (regression).** Months with more finished homes per month of sales had more builders cutting prices (level fit, n = `r tB$n`, p `r pv(tB$p)`); total months' supply shows nothing (p = `r pv(tA$p)`). It holds with supply lagged one to three months and with the 30-year mortgage rate as a control (p `r pv(max(c(rF$p, rG$p)))` in each). The month-to-month version is not significant (p = `r pv(tE$p)`). The data suggests a correlation between higher finished inventory and more builders cutting prices, but does not establish causality. `r cite("census_nrs", "nahb_hmi", "freddie_pmms")`
+- **October.** `r p0(kv("nahb_share_cutting_prices_pct"))` of builders cut prices in `r oct_lab`, `r sprintf("%.1f", kv("nahb_oct_gap_vs_fitted_pts"))` points above the fit at `r sep_lab` supply. The October jump in mortgage rates (Driver 1) may have contributed, although the data does not establish a direct causal relationship; Census October inventory is not yet published.
+
+## Builders are leaning on incentives and price cuts
+
+- **Mortgage rates are unlikely to fall enough to meaningfully restore buyer demand**, leaving builders to reduce excess inventory through price cuts and incentives.
+- **Builders are already doing this.** `r p0(kv("nahb_share_using_incentives_pct"))` of builders used incentives in `r oct_lab`, the `r inc_streak`th month in a row at or above 60%, and `r p0(kv("nahb_share_cutting_prices_pct"))` cut prices`r if (cut_is_high) paste0(", the highest share in the series, which starts in ", cut_first_lab) else ""`. Those incentives include mortgage-rate buydowns. Builder confidence fell to `r hmi_now`, its lowest since 2012 (NAHB). Price cuts and incentives lower what builders earn per home, through reported prices or costs depending on each builder's accounting, and gross margins have fallen at all seven builders (Driver 4). `r cite("nahb_hmi")`
+- **Part of the October reading may be seasonal.** The price-cut share is not seasonally adjusted and has tended to run higher late in the year: over 2022-2025 it averaged about 36% in November-December, against about 28% in February-May. The spring selling season will show how much of the rise lasts.
+
+```{r ex23-incentives, fig.height=2.9, out.width="88%", fig.cap="Exhibit 2.3. Share of builders using sales incentives, monthly, since the series began (NAHB/Wells Fargo HMI survey, special questions). Shaded: the current run of months at or above 60%, a marker chosen for this report. The line connects across the few months with no published reading."}
+streak_start <- inc_s$month[nrow(inc_s) - inc_streak + 1]
+inc_first <- inc_s[1, ]
+inc_last  <- inc_s[nrow(inc_s), ]
+ggplot(inc_s, aes(month, inc)) +
+  annotate("rect", xmin = streak_start - 15, xmax = inc_last$month + 15, ymin = -Inf, ymax = Inf, fill = "#e8eef6") +
+  geom_hline(yintercept = 60, colour = GREY, linetype = "dashed", linewidth = 0.6) +
+  geom_line(colour = NAVY, linewidth = 1) +
+  geom_point(data = inc_last, colour = NAVY, size = 2.6) +
+  annotate("text", x = inc_first$month, y = inc_first$inc - 3, hjust = 0, vjust = 1, size = 2.8, colour = NAVY, fontface = "bold",
+           label = sprintf("%s: %.0f%%", format(inc_first$month, "%b %Y"), inc_first$inc)) +
+  annotate("text", x = inc_last$month, y = inc_last$inc + 3, hjust = 1, vjust = 0, size = 2.8, colour = NAVY, fontface = "bold",
+           label = sprintf("%s: %.0f%%", format(inc_last$month, "%b %Y"), inc_last$inc)) +
+  annotate("text", x = inc_first$month, y = 61, hjust = 0, vjust = 0, size = 2.6, colour = "#333333", label = "60% of builders") +
+  scale_x_date(date_breaks = "6 months", date_labels = "%b %Y", expand = expansion(mult = c(0.02, 0.03))) +
+  scale_y_continuous(limits = c(35, 75), breaks = seq(40, 70, by = 10), expand = c(0, 0), labels = function(x) sprintf("%.0f%%", x)) +
+  labs(title = sprintf("Incentives have stayed at 60%%+ of builders for %d straight months", inc_streak),
+       x = NULL, y = "Share of builders using incentives",
+       caption = paste0("Source: NAHB / Wells Fargo HMI ", cite("nahb_hmi"), ".")) +
+  theme_d1()
+```
+
+\newpage
+
+## Supporting analysis: Driver 2
+
+```{r a1, eval=show_specs, fig.height=3.6, out.width="92%", fig.cap=paste0(lab_specs, ". Builders' completed unsold homes per closing (quarterly closings, 4-quarter average basis). Definitions differ by builder and over time, so compare each builder with itself only.")}
+bl <- bs %>% filter(!is.na(per_close))
+last_b <- bl %>% group_by(builder) %>% slice_max(period_end, n = 1) %>% ungroup()
+cols <- c("D.R. Horton" = NAVY, "PulteGroup" = RED, "Toll Brothers" = LNAVY, "Meritage Homes" = GREY)
+ggplot(bl, aes(period_end, per_close, colour = builder)) +
+  geom_line(linewidth = 0.9) + geom_point(size = 1.2) +
+  geom_text(data = last_b, aes(label = sprintf("%s %.2f", builder, per_close)), hjust = 0, nudge_x = 40, size = 2.8, show.legend = FALSE) +
+  scale_colour_manual(values = cols, guide = "none") +
+  scale_x_date(breaks = as.Date(paste0(2020:2026, "-01-01")), date_labels = "%Y", expand = expansion(mult = c(0.01, 0.30))) +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(title = "Finished specs per closing, by builder",
+       x = NULL, y = "Completed unsold homes per closing",
+       caption = paste0("Source: builder quarterly filings, 2019-2026 ", cite("builder_filings_hist"), "; ratio calculated here. Transcribed with AI assistance; 22 figures checked against the filings, all matching.") +
+  theme_d1() + theme(plot.title = element_text(size = 10.5))
+```
+
+```{r tbl-tests, results="asis"}
+cat("\n```{=latex}\n\\renewcommand{\\arraystretch}{1.5}\n```\n\n")
+pe  <- function(p) ifelse(p < 0.001, "p < 0.001", sprintf("p = %.2f", p))
+yn  <- function(p) ifelse(all(p < 0.05), "Yes", "No")
+tt <- tibble(
+  Question = c("Does total supply explain price cuts?",
+               "Does finished-home supply explain them?",
+               "Does that hold using supply from 1-3 months earlier?",
+               "Does it hold after controlling for the mortgage rate?",
+               "Do month-to-month changes move together?"),
+  Answer   = c(yn(tA$p), yn(tB$p), yn(rF$p), yn(rG$p), yn(tE$p)),
+  Evidence = c(sprintf("%s, R² %.2f", pe(tA$p), tA$r2),
+               sprintf("%s, R² %.2f", pe(tB$p), tB$r2),
+               sprintf("%s at each lag, R² %.2f-%.2f", pe(max(rF$p)), min(rF$r2), max(rF$r2)),
+               sprintf("%s, R² %.2f", pe(rG$p), rG$r2),
+               sprintf("%s: insufficient evidence of a relationship in month-to-month changes", pe(tE$p))))
+cat(styled(tt, c("l", "c", "l"), c(8.2, 1.4, 6.6), font_size = 8.5,
+           caption = paste0(lab_tests, ". What the tests show. Share of builders cutting prices (NAHB) against new-home supply (Census), monthly, n = ", tB$n, ". Full regression output is in Data and Methodology.")) %>%
+      row_spec(2, background = "#e8eef6"))
+```
+

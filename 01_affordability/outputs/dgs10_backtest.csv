@@ -1,0 +1,11 @@
+horizon_months,model,origins,mae,rmse,mae_vs_rw,rmse_vs_rw,eff_indep_obs
+6,"ARIMA(1,1,1)",431,0.5019,0.6277,0.9927,0.9999,71.8
+6,Random walk (no change),431,0.5056,0.6277,1.0,1.0,71.8
+6,Damped trend (Holt),431,0.5072,0.6317,1.0032,1.0064,71.8
+6,Random walk with drift,431,0.5125,0.6354,1.0137,1.0122,71.8
+6,Linear trend (10y),431,0.7336,0.9018,1.451,1.4366,71.8
+12,"ARIMA(1,1,1)",431,0.7189,0.8787,0.9956,0.9989,35.9
+12,Random walk (no change),431,0.7221,0.8796,1.0,1.0,35.9
+12,Damped trend (Holt),431,0.7321,0.8939,1.0138,1.0162,35.9
+12,Random walk with drift,431,0.7408,0.9014,1.0259,1.0247,35.9
+12,Linear trend (10y),431,0.8117,0.9994,1.1241,1.1362,35.9

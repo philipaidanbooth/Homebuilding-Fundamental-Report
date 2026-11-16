@@ -1,0 +1,414 @@
+---
+title: "Driver 1: Mortgage rates and affordability"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering, skip=2pt}
+  \captionsetup[figure]{font={footnotesize,it}}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \definecolor{calloutfill}{HTML}{FFF3CD}
+  \definecolor{calloutline}{HTML}{D39B2F}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \setlength{\headsep}{8pt}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{9pt}{3pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{callout}{colback=calloutfill,colframe=calloutline,boxrule=0.6pt,arc=0pt,left=6pt,right=6pt,top=4pt,bottom=4pt}
+  \usepackage{enumitem}
+  \setlist[itemize]{topsep=2pt,itemsep=1.5pt,parsep=0pt}
+  \renewcommand{\maketitle}{}
+---
+
+<!--
+Numbers are NOT typed here: they are read from CSVs through inline R code.
+Knit from the 01_affordability folder. Reads only; no downloading.
+Inputs: outputs/*.csv (written by affordability.py, rate_demand.py, rate_prediction_interval.py);
+data/raw/*.csv (FRED pulls); data/manual/driver1_verified_inputs.csv (hand-entered public figures,
+checked in VERIFICATION_LOG.csv).
+Packages: ggplot2, dplyr, readr, tidyr, scales, lubridate, knitr, kableExtra.
+Layout matches Drivers 2-4 (header and footer, navy headings, callout box, navy bordered tables).
+-->
+
+```{r setup, include=FALSE}
+source("../06_appendix_sources/cite.R")   # numbered citations: cite("key")
+# Every chart below is drawn here in R from the CSVs written by affordability.py and rate_demand.py
+# (outputs/), the raw FRED pulls (data/raw/), and rate_prediction_interval.py (outputs/pi_*.csv).
+# Knit from the 01_affordability folder so the relative paths resolve.
+# Packages: ggplot2, dplyr, readr, tidyr, scales, lubridate, knitr, kableExtra.
+suppressPackageStartupMessages({
+  library(ggplot2); library(dplyr); library(readr); library(tidyr)
+  library(scales);  library(lubridate); library(knitr); library(kableExtra)
+})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      out.width = if (knitr::is_latex_output()) "88%" else "100%",
+                      fig.align = "center", fig.width = 9, fig.height = 4.5, dpi = 160, dev = "png")
+
+NAVY <- "#1f3350"; RED <- "#b5524f"; GREY <- "#8a8f98"
+# Clean, standard report style: white background, left and bottom axes only, light horizontal
+# gridlines, bold navy title, grey source note. Red = mortgage rates / today; navy = everything else.
+theme_d1 <- function() {
+  theme_classic(base_size = 11) +
+    theme(text = element_text(colour = "#222222"),
+          panel.grid.major.y = element_line(colour = "#dddddd", linewidth = 0.4),
+          panel.grid.major.x = element_blank(),
+          axis.line = element_line(colour = "#222222", linewidth = 0.5),
+          axis.ticks = element_line(colour = "#222222", linewidth = 0.4),
+          axis.text = element_text(colour = "#555555", size = 9),
+          axis.title = element_text(colour = "#111111", size = 10),
+          plot.title = element_text(face = "bold", size = 12.5, colour = NAVY, hjust = 0.5, margin = margin(b = 8)),
+          plot.title.position = "panel",
+          plot.caption = element_text(colour = "#777777", size = 11, hjust = 0, margin = margin(t = 10)),
+          plot.caption.position = "plot",
+          legend.position = "top", legend.justification = "left", legend.title = element_blank(),
+          legend.key = element_blank(), legend.text = element_text(size = 9),
+          strip.background = element_blank())
+}
+
+# ---- data ------------------------------------------------------------------------------
+read_fred <- function(path, col)
+  read_csv(path, show_col_types = FALSE) %>%
+    rename(date = observation_date, value = all_of(col)) %>%
+    mutate(date = as.Date(date), value = suppressWarnings(as.numeric(value))) %>%
+    filter(!is.na(value))
+
+mort_w <- read_fred("data/raw/MORTGAGE30US_2026-11-09.csv", "MORTGAGE30US")   # weekly, %
+dgs10  <- read_fred("data/raw/DGS10_2026-11-09.csv",        "DGS10")          # daily, %
+sales  <- read_fred("data/raw/HSN1F_2026-11-09.csv",        "HSN1F")          # monthly, k SAAR
+
+month_mean <- function(df, name)
+  df %>% mutate(month = floor_date(date, "month")) %>%
+    group_by(month) %>% summarise(!!name := mean(value), .groups = "drop")
+rate_m <- month_mean(mort_w, "rate")
+# recent peak in the weekly rate (last 26 weeks) and the last earlier week at or above it (core point)
+mw_recent <- tail(mort_w, 26)
+pk_rate   <- max(mw_recent$value)
+pk_date   <- mw_recent$date[which.max(mw_recent$value)]
+pk_prior  <- mort_w[mort_w$date < pk_date & mort_w$value >= pk_rate, ]
+pk_since  <- format(max(pk_prior$date), "%B %Y")
+
+aff <- read_csv("outputs/affordability_monthly.csv", show_col_types = FALSE) %>%
+  mutate(month = as.Date(month))
+kn  <- read_csv("outputs/key_numbers.csv", show_col_types = FALSE, col_types = "ccc_")
+kv  <- function(m) as.numeric(kn$value[kn$metric == m])
+rdk <- read_csv("outputs/rate_demand_key_numbers.csv", show_col_types = FALSE, col_types = "cdcc")
+reg      <- read_csv("outputs/rate_sales_regression.csv", show_col_types = FALSE)
+scen     <- read_csv("outputs/rate_drop_scenario.csv", show_col_types = FALSE)
+pi_lat   <- read_csv("outputs/pi_latest.csv", show_col_types = FALSE)
+pi_bt    <- read_csv("outputs/pi_backtest.csv", show_col_types = FALSE)
+pi_bins  <- read_csv("outputs/pi_scenario_bins.csv", show_col_types = FALSE)
+
+# ---- numbers quoted in the text ---------------------------------------------------------
+cur_rate <- mort_w$value[nrow(mort_w)]; cur_date <- mort_w$date[nrow(mort_w)]
+pick <- function(h, m) pi_lat %>% filter(horizon == h, method == m)
+pm12 <- pick("12 months", "Normal, all-history vol")
+pm6  <- pick("6 months",  "Normal, all-history vol")
+cov_row <- function(m) pi_bt %>% filter(horizon_weeks == 52, sample == "1990-2026", method == m)
+cov_all <- cov_row("Normal, all-history vol")$coverage_80
+cov_2y  <- cov_row("Normal, 2y vol")$coverage_80
+p0 <- function(x) sprintf("%.0f%%", 100 * x)
+b52     <- pi_bins %>% filter(horizon_weeks == 52)
+probs   <- c(b52[["<6.25"]], b52[["6.25-6.75"]], b52[["6.75-7.50"]], b52[["7.50-8.00"]], b52[[">8.00"]])
+eff2000 <- reg %>% filter(sample == "2000-2026", rate_lag_months == 0)
+sp_now  <- rdk$value[rdk$metric == "spread_full_pp"]
+sp_norm <- rdk$value[rdk$metric == "spread_norm_2010_19"]
+sp_date <- rdk$obs_date[rdk$metric == "spread_full_pp"]
+
+# Three exhaustive 12-month scenarios used across the report, grouped from the five bands:
+# upside below 6.25%, base 6.25-8.00%, downside above 8.00%
+w_up <- probs[1]; w_base <- probs[2] + probs[3] + probs[4]; w_dn <- probs[5]
+
+# Hand-entered public figures (each checked against its source; see VERIFICATION_LOG.csv)
+mi_tbl <- read_csv("data/manual/driver1_verified_inputs.csv", show_col_types = FALSE,
+                   col_types = cols(.default = "c"))
+mi <- function(k) as.numeric(mi_tbl$value[mi_tbl$key == k])
+
+# Affordability inputs quoted in the text
+ep        <- read_csv("outputs/rate_drop_episodes.csv", show_col_types = FALSE)
+oct_rate  <- kv("current_mortgage_rate_monthly_avg")                    # October monthly average
+oct_sp    <- kv("current_mortgage_spread")                              # October monthly average
+px_month  <- as.Date(paste0(kn$value[kn$metric == "latest_month_with_price"], "-01"))
+px_now    <- kv("current_price_used")
+px_ya     <- aff$median_new_price[aff$month == (px_month %m-% months(12))]
+low26     <- aff %>% filter(month >= floor_date(px_month, "year"), !is.na(total_to_income)) %>%
+               slice_min(total_to_income, n = 1)                        # best month this year
+aug26     <- aff %>% filter(month == as.Date("2026-08-01"))               # summer reading, before the rate passed 7%
+last_px   <- aff %>% filter(month == px_month)
+tax_rate  <- 12 * last_px$tax_payment / last_px$median_new_price        # assumption, share of price a year
+ins_rate  <- 12 * last_px$ins_payment / last_px$median_new_price        # assumption, share of price a year
+ins_step  <- 0.001 * px_now / 12                                        # $ a month per 0.1 pt of price
+inc_used  <- kv("median_hh_income_used")
+ust_last  <- dgs10$value[nrow(dgs10)]; ust_date <- dgs10$date[nrow(dgs10)]
+ust_oct   <- kv("current_ust10_monthly_avg")
+unrate    <- rdk$value[rdk$metric == "unrate_latest"]
+
+# Buydown: illustrative economic equivalent of the payment subsidy
+ref_price <- kv("ref_price")
+pmt <- function(P, rate_pct, n = 360) { i <- rate_pct / 1200; P * i * (1 + i)^n / ((1 + i)^n - 1) }
+# payment as % of income at a given rate: same price, tax, insurance and income as the latest estimate
+ratio_at <- function(rate_pct) 100 * 12 * (pmt(0.8 * px_now, rate_pct) + px_now * (tax_rate + ins_rate) / 12) / inc_used
+cost_to_6 <- function(mkt, months = 84) {
+  loan <- 0.8 * ref_price; gap <- pmt(loan, mkt) - pmt(loan, 6.00); i <- mkt / 1200
+  gap * (1 - (1 + i)^-months) / i / ref_price
+}
+cap_buydown <- sprintf("Exhibit 1.4. Illustrative economic equivalent of the payment subsidy needed to reach a 6.00%% rate, as a share of the home price. Present value of the payment saved over 84 months (7-year assumed loan life), discounted at the market rate; \\$%s home, 20%% down, 30-year fixed.",
+                       formatC(ref_price, format = "d", big.mark = ","))
+
+# Appendix: the two recent rate declines
+ep24      <- ep %>% filter(crossing_month == "2024-08")
+rm_at     <- function(d) rate_m$rate[rate_m$month == as.Date(d)]
+nm_sales  <- rdk$value[rdk$metric == "near_miss_2025_sales_chg"]
+nm_sales6 <- rdk$value[rdk$metric == "near_miss_2025_sales_chg_plus6"]    # peak to six months after the low, same basis as ep24
+sales3    <- sales %>% arrange(date) %>% mutate(s3 = as.numeric(stats::filter(value, rep(1/3, 3), sides = 1)))
+s3_at     <- function(d) sales3$s3[sales3$date == as.Date(d)]
+ep24_s6   <- s3_at("2025-03-01") / s3_at("2023-10-01") - 1      # high (Oct 2023) to six months after the low (Sep 2024), same basis as nm_sales6
+eff2000_6 <- reg %>% filter(sample == "2000-2026", rate_lag_months == 6)
+pct1      <- function(x) sub("-", "\u2212", sprintf("%+.1f%%", 100 * x))
+
+# Tables: navy header and bordered grid in the PDF; plain kable elsewhere
+navy_tbl <- function(df, align, caption = NULL, font_size = 9) {
+  if (!knitr::is_latex_output()) return(kable(df, align = align, caption = caption))
+  kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE, caption = caption) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+}
+```
+
+```{=latex}
+\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}\renewcommand{\arraystretch}{1.25}
+{\footnotesize\bfseries\color{teal}DRIVER 1 | MORTGAGE RATES AND AFFORDABILITY}
+
+{\fontsize{20}{24}\selectfont\bfseries\color{navy} Rates near 7\% keep affordability stretched}
+
+\vspace{4pt}
+\begin{callout}
+```
+
+Mortgage rates recently hit their highest level since `r pk_since` and are unlikely to fall materially in the next 12 months. The single most likely outcome is that rates remain near 7%. Even a 1-point drop is unlikely, and while history points to a modest lift in sales if it did happen, it would not restore housing to 2018-19 affordability. The payment burden remains well above 2018-19 levels, and builders are using incentives to support sales while accepting lower margins.
+
+```{=latex}
+\end{callout}
+\vspace{2pt}
+```
+
+```{r tbl-then-now}
+base <- aff %>% filter(month >= as.Date("2018-01-01"), month <= as.Date("2019-12-01"))
+mb   <- function(col) mean(base[[col]], na.rm = TRUE)
+usd0 <- function(x, to = 1) paste0("$", formatC(round(x / to) * to, format = "d", big.mark = ","))
+pc   <- function(now, then) sprintf("%+.0f%%", 100 * (now / then - 1))
+now  <- list(rate = kv("current_mortgage_rate_monthly_avg"), ust = kv("current_ust10_monthly_avg"),
+             spread = kv("current_mortgage_spread"), price = kv("current_price_used"),
+             inc = kv("median_hh_income_used"), pay = kv("current_total_payment"),
+             pti = 100 * kv("current_total_to_income"), cuts = kv("nahb_share_cut_prices"))
+then <- list(rate = mb("mortgage_rate"), ust = mb("ust10"), spread = mb("mortgage_spread"),
+             price = mb("median_new_price"), inc = mb("median_hh_income"), pay = mb("total_payment"),
+             pti = 100 * mb("total_to_income"), cuts = mi("nahb_discounting_prices_apr2019"))
+tn <- tibble(
+  ` ` = c("30-year mortgage rate", "10-year Treasury yield", "Mortgage-Treasury spread",
+          "Median new-home price", "Median household income", "Monthly payment on the median new home",
+          "Payment as % of household income", "Builders cutting prices (NAHB; 2018-19 column is the April 2019 reading)"),
+  `2018-19 average` = c(sprintf("%.2f%%", then$rate), sprintf("%.2f%%", then$ust), sprintf("%.2f pts", then$spread),
+                        usd0(then$price, 100), usd0(then$inc, 10), usd0(then$pay), sprintf("%.1f%%", then$pti),
+                        sprintf("%.0f%%", then$cuts)),
+  `October 2026` = c(sprintf("%.2f%%", now$rate), sprintf("%.2f%%", now$ust), sprintf("%.2f pts", now$spread),
+                     usd0(now$price, 100), usd0(now$inc, 10), usd0(now$pay), sprintf("%.1f%%", now$pti),
+                     sprintf("%.0f%%", now$cuts)),
+  Change = c(sprintf("%+.2f pts (%s)", now$rate - then$rate, pc(now$rate, then$rate)),
+             sprintf("%+.2f pts (%s)", now$ust - then$ust, pc(now$ust, then$ust)),
+             sprintf("%+.2f pts (%s)", now$spread - then$spread, pc(now$spread, then$spread)),
+             pc(now$price, then$price), pc(now$inc, then$inc),
+             pc(now$pay, then$pay), sprintf("%+.1f pts (%s)", now$pti - then$pti, pc(now$pti, then$pti)),
+             sprintf("%+.0f pts (%s)", now$cuts - then$cuts, pc(now$cuts, then$cuts))))
+navy_tbl(tn, align = c("l", "r", "r", "r"),
+      caption = "Key performance indicators of the housing market, 2018 vs 2026")
+```
+
+```{=latex}
+\vspace{-6pt}
+{\footnotesize\itshape\color{gray} Monthly averages. October 2026 payment is an estimate (October rate on the September median price); income is the 2025 annual figure. Payment = principal, interest, property tax and insurance, 20\% down. Price-cut readings are from NAHB surveys. Sources: `r cite("freddie_pmms", "fed_h15", "census_nrs", "census_income", "nahb_hmi", "nahb_incentives_2019", "attom_tax")`.}
+```
+
+## 1. Affordability is stretched and getting worse again
+
+Incomes are up and have outpaced new-home prices since 2018-19 (`r pc(now$inc, then$inc)` against `r pc(now$price, then$price)`). Yet a buyer's monthly payment is up far more (`r sprintf("%.0f%%", 100 * (now$pay / then$pay - 1))`), and the higher mortgage rate is a major reason. `r cite("freddie_pmms", "census_nrs", "census_income")`
+
+```{r fig-payment-to-income, fig.height=3.7, fig.cap="Exhibit 1.1. Monthly payment on the median new home (principal, interest, property tax and insurance, 20% down) as a share of median household income. October 2026 is an estimate: the October rate on the September price, the latest Census has published."}
+obs <- aff %>% filter(!is.na(total_to_income), month >= as.Date("2018-01-01")) %>%
+  mutate(ratio = 100 * total_to_income)
+avg1819   <- 100 * kv("total_to_income_2018_19_avg")
+peak_val  <- 100 * kv("total_to_income_peak")
+peak_date <- obs$month[which.max(obs$ratio)]
+oct_est   <- 100 * kv("current_total_to_income"); oct_date <- as.Date("2026-10-01")
+last_obs  <- obs[nrow(obs), ]
+
+ggplot(obs, aes(month, ratio)) +
+  geom_hline(yintercept = avg1819, colour = GREY, linetype = "dashed", linewidth = 0.6) +
+  geom_line(colour = RED, linewidth = 1) +
+  geom_segment(aes(x = last_obs$month, y = last_obs$ratio, xend = oct_date, yend = oct_est),
+               colour = RED, linetype = "dotted", linewidth = 0.8) +
+  geom_point(aes(x = oct_date, y = oct_est), shape = 21, size = 3, fill = "white", colour = RED, stroke = 1.2) +
+  geom_point(aes(x = peak_date, y = peak_val), colour = NAVY, size = 2.5) +
+  annotate("text", x = peak_date, y = peak_val + 1.6, label = sprintf("2022 peak: %.1f%%", peak_val),
+           size = 3, colour = "#333333") +
+  annotate("text", x = oct_date, y = avg1819 + 1.5,
+           label = sprintf("2018-19 average: %.1f%%", avg1819), size = 3, hjust = 1, colour = "#333333") +
+  annotate("text", x = oct_date, y = oct_est + 2.4, label = sprintf("Oct-2026 est.: %.1f%%", oct_est),
+           size = 3, hjust = 1, colour = "#333333") +
+  scale_y_continuous(limits = c(25, 52)) +
+  labs(title = "The payment on a new home takes a far larger share of income than in 2018-19",
+       x = NULL, y = "Payment as % of household income",
+       caption = paste(strwrap("Sources: Freddie Mac PMMS, Census (MSPNHSUS, MEHOINUSA646N) via FRED; ATTOM property-tax rate; insurance is an assumption (0.50% of price a year).", 98), collapse = "\n")) +
+  theme_d1()
+```
+
+- Even allowing for the disruption COVID caused in the housing market, the direction of the chart is robust. On basic median assumptions (set out in Data & Methodology), the payment takes a much larger share of income than it did in the last stable housing market, 2018-19.
+- A buyer of the median new home now spends about **`r sprintf("%.1f%%", oct_est)` of median household income** on the monthly payment (Oct-2026, estimate).
+  - That is better than the 2022 peak of `r sprintf("%.1f%%", peak_val)`.
+  - It is still about **`r round(oct_est - avg1819)` points above the 2018-19 average of `r sprintf("%.1f%%", avg1819)`**.
+  - That level rests on national medians, 20% down and the market rate. Actual new-home buyers often earn more than the median household, and many get a builder buydown, so the exact number is less certain than the direction. Even at a bought-down 6% rate, the payment would still take about `r sprintf("%.0f%%", ratio_at(6.00))` of income.
+- Affordability has worsened again in 2026. The ratio hit its 2026 low of `r sprintf("%.1f%%", 100 * low26$total_to_income)` in `r format(low26$month, "%B")`, when the 30-year rate averaged `r sprintf("%.2f%%", low26$mortgage_rate)`. Falling new-home prices kept it near that level through August (`r sprintf("%.1f%%", 100 * aug26$total_to_income)`), but the rate then jumped to a `r sprintf("%.2f%%", oct_rate)` October average, which drives the October estimate above. The weekly rate has since eased from its `r sprintf("%.2f%%", pk_rate)` `r format(pk_date, "%B")` peak to `r sprintf("%.2f%%", cur_rate)` (`r format(cur_date, "%Y-%m-%d")`). `r cite("freddie_pmms", "census_nrs")`
+
+## 2. Nothing points to meaningful rate relief in the next 12 months
+
+```{r fig-mortgage-rate-fan, fig.cap="Exhibit 1.2. Weekly 30-year mortgage rate and the range for the next 12 months. The shaded bands are 80% and 95% prediction intervals built from the historical size of weekly rate changes (1971-2026) and centred on the latest weekly rate. The dotted lines mark five rate bands, with the model-derived weight on the rate being in each band in 12 months."}
+sd_w   <- sd(diff(mort_w$value))                         # weekly change, all history
+hist_w <- mort_w %>% filter(date >= as.Date("2024-01-01"))
+h      <- 0:52
+fan <- tibble(h = h, date = cur_date + 7 * h, s = sd_w * sqrt(h))
+edges  <- c(6.25, 6.75, 7.50, 8.00)
+labs_y <- c(5.95, 6.50, 7.125, 7.75, 8.35)
+labs_t <- sprintf(c("Upside: below 6.25%% (%s)", "Base: 6.25-6.75%% (%s)", "Base: 6.75-7.50%% (%s)",
+                    "Base: 7.50-8.00%% (%s)", "Downside: above 8.00%% (%s)"), sapply(probs, p0))
+end_d <- cur_date + 7 * 52
+
+ggplot() +
+  geom_ribbon(data = fan, aes(date, ymin = cur_rate - 1.96 * s, ymax = cur_rate + 1.96 * s, fill = "95% range"), alpha = 0.14) +
+  geom_ribbon(data = fan, aes(date, ymin = cur_rate - 1.2816 * s, ymax = cur_rate + 1.2816 * s, fill = "80% range"), alpha = 0.26) +
+  geom_hline(yintercept = edges, colour = GREY, linetype = "dotted", linewidth = 0.5) +
+  geom_line(data = hist_w, aes(date, value, colour = "30-yr mortgage rate, weekly"), linewidth = 1) +
+  geom_line(data = fan, aes(date, rep(cur_rate, length(h)), colour = "Central case: unchanged"), linetype = "dashed", linewidth = 0.8) +
+  annotate("text", x = end_d + 12, y = labs_y, label = labs_t, hjust = 0, size = 2.9, colour = "#333333") +
+  scale_fill_manual(values = c("95% range" = NAVY, "80% range" = NAVY)) +
+  scale_colour_manual(values = c("30-yr mortgage rate, weekly" = NAVY, "Central case: unchanged" = NAVY),
+                      guide = guide_legend(override.aes = list(linetype = c("solid", "dashed")))) +
+  scale_x_date(expand = expansion(mult = c(0.01, 0.36)),
+               breaks = seq(as.Date("2024-01-01"), as.Date("2027-11-01"), by = "6 months"), date_labels = "%b %Y") +
+  labs(title = "Rates are most likely to stay near 7% over the next 12 months",
+       x = NULL, y = "30-year mortgage rate (%)",
+       caption = paste(strwrap(sprintf("Source: MORTGAGE30US via FRED (weekly). Normal prediction interval; weekly volatility %.2f pts from 1971-2026 data, scaled by the square root of weeks ahead. Weights are model-derived and do not capture a regime break such as a recession.", sd_w), 98), collapse = "\n")) +
+  theme_d1()
+```
+
+- **Central case: no change.** The central case is the latest weekly rate, **`r sprintf("%.2f%%", cur_rate)`** (`r format(cur_date, "%Y-%m-%d")`; method in Data & Methodology). That isn't a call that rates will sit still. Rates are hard to forecast, and "no change" has been tough to beat, so it's the honest starting point.
+- **The range is wide:** `r sprintf("%.2f", pm12$p10)`-`r sprintf("%.2f", pm12$p90)`% at 12 months (80%). It is built from the mortgage rate itself, so it covers moves in both parts of that rate: the 10-year Treasury yield and the spread lenders add on top.
+- **The base case, 6.25-8.00%, carries about `r p0(w_base)` of the weight.** That is how the model groups rates in 12 months into the three scenarios used across this report. The single most likely band is 6.75-7.50%, around today's rate, at `r p0(probs[3])`. A decline to 6.25-6.75% (`r p0(probs[2])`) stays in the base case because it would not restore affordability: at 6.75% the payment would still take about `r sprintf("%.0f%%", ratio_at(6.75))` of income and at 6.25% about `r sprintf("%.0f%%", ratio_at(6.25))`, against `r sprintf("%.0f%%", avg1819)` in 2018-19. The upside, rates below 6.25%, carries about `r p0(w_up)`. The downside, rates above 8.00%, carries about `r p0(w_dn)` and is a more severe risk to buyer demand. The two tail figures are the least certain part of the model (Data & Methodology). These probabilities are model estimates, not observed market-implied forecasts.
+- **A 1-point rate decline would improve affordability, but likely not enough to restore demand.** On this report's rate range, the odds that the rate is at or below `r sprintf("%.2f%%", cur_rate - 1)` are about **`r p0(pm6$prob_le_6_18)` in 6 months and `r p0(pm12$prob_le_6_18)` in 12 months**. Since 2000, a 1-point drop has gone with about `r sprintf("%+.1f%%", 100 * eff2000$sales_effect_of_minus_1pp)` in new-home sales, and sales did not rise after either of the last two declines (Supporting analysis and Exhibit A1.2). `r cite("census_nrs")`
+- **The range has held up in the past.** Standing at each week since 1990 and using only the rate history available up to then (back to 1971), the 80% range contained the actual rate 12 months later `r p0(cov_all)` of the time, close to the 80% it should. A range based on only the prior two years of rate moves was too narrow and caught it just `r p0(cov_2y)` of the time (Exhibit A1.1).
+
+## Key assumption: the 10-year Treasury and the spread stay near current levels
+
+**Why rates stay near 7% in the base case.** Three things hold up the 10-year Treasury yield, the larger part of the mortgage rate:
+
+1. **Persistent inflation** makes it harder for mortgage rates to fall significantly: consumer prices rose `r sprintf("%.1f%%", mi("cpi_yoy"))` in the year to September (core `r sprintf("%.1f%%", mi("core_cpi_yoy"))`). `r cite("bls_cpi_release")`
+2. **Fed policy.** With unemployment around `r sprintf("%.1f%%", unrate)` in October, the Fed has less reason to cut rates aggressively: it raised its policy rate in September, held it at `r sprintf("%.2f", mi("fed_funds_lo"))`-`r sprintf("%.2f%%", mi("fed_funds_hi"))` in October with `r c("one", "two", "three")[mi("fomc_oct_votes_for_hike")]` votes for a further increase, and its median projection keeps the rate at `r if (mi("sep_ffr_2026") == mi("sep_ffr_2027")) sprintf("%.1f%% through the end of 2027", mi("sep_ffr_2027")) else sprintf("%.1f%% at the end of 2026 and %.1f%% at the end of 2027", mi("sep_ffr_2026"), mi("sep_ffr_2027"))`. `r cite("bls_empsit", "fomc_statement", "fomc_sep")`
+3. **Treasury supply and investor demand** may keep long-term yields elevated, limiting how much mortgage rates can fall. `r cite("tbac")`
+
+**The 10-year Treasury yield stays near its recent level:** `r sprintf("%.2f%%", ust_last)` on `r format(ust_date, "%Y-%m-%d")`, and `r sprintf("%.2f%%", ust_oct)` on average in October. `r cite("fed_h15")` None of the trend models beat a "no change" forecast for the 10-year yield in the backtest. That test was run on the Treasury yield, the larger part of the mortgage rate; the range itself is built on the mortgage rate and is checked against it directly in Exhibit A1.1.
+
+```{r fig-mortgage-spread, fig.height=3.6, fig.cap="Exhibit 1.3. The 30-year mortgage rate minus the 10-year Treasury yield, monthly."}
+spread <- inner_join(month_mean(mort_w, "mort"), month_mean(dgs10, "ust"), by = "month") %>%
+  mutate(spread = mort - ust) %>% filter(month >= as.Date("2000-01-01"))
+norm_sp <- mean(spread$spread[spread$month >= as.Date("2010-01-01") & spread$month <= as.Date("2019-12-01")])
+ggplot(spread, aes(month, spread)) +
+  geom_hline(yintercept = norm_sp, colour = GREY, linetype = "dashed") +
+  geom_line(colour = NAVY, linewidth = 1) +
+  annotate("text", x = as.Date("2015-07-01"), y = norm_sp - 0.33, hjust = 0.5, size = 3, colour = "#333333",
+           label = sprintf("2010-19 average (%.2f pts)", norm_sp)) +
+  scale_y_continuous(labels = function(x) sprintf("%.1f", x)) +
+  labs(title = "The mortgage-Treasury spread is still wide of its pre-2020 norm", x = NULL, y = "Percentage points",
+       caption = "Sources: MORTGAGE30US, DGS10 via FRED (monthly means).") +
+  theme_d1()
+```
+
+- The spread between the mortgage rate and Treasury yields is about **`r sprintf("%.2f", sp_now)` points** in the latest week (`r sp_date`). If that spread alone returned to its **2010-19 average of `r sprintf("%.2f", sp_norm)` points**, with no change in Treasury yields, the mortgage rate would fall by about `r sprintf("%.2f", sp_now - sp_norm)` points, to roughly `r sprintf("%.1f%%", cur_rate - (sp_now - sp_norm))`. Narrower spreads would help affordability, but likely not enough to bring buyers back in large numbers. `r cite("freddie_pmms", "fed_h15")`
+
+**What would change this view:** rates could fall faster than expected with a recession, a quick drop in inflation or a dovish Fed turn. They could rise further with an upside inflation surprise. Both are covered in Alternative Scenarios and Signposts.
+
+```{=latex}
+\vspace{4pt}
+{\footnotesize\itshape\color{gray} Bracketed numbers refer to the Sources page. Data accessed November 9-10, 2026. Assumptions and model details are in Data \& Methodology.}
+```
+
+
+\newpage
+
+## 3. The value of a payment subsidy to reach a 6% rate
+
+```{r fig-buydown, fig.height=3.6, fig.cap=cap_buydown}
+bd <- tibble(mkt = sort(unique(c(cur_rate - 1, 6.50, 7.00, cur_rate, 7.50, 8.00)))) %>%
+  mutate(cost = cost_to_6(mkt),
+         lab = factor(sprintf("%.2f%%", mkt), levels = sprintf("%.2f%%", mkt)),
+         today = mkt == cur_rate)
+ggplot(bd, aes(lab, 100 * cost, fill = today)) +
+  geom_col(width = 0.65) +
+  geom_text(aes(label = sprintf("%.1f%%", 100 * cost)), vjust = -0.5, size = 3.2, colour = "#333333") +
+  scale_fill_manual(values = c(`TRUE` = RED, `FALSE` = NAVY), guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+  labs(title = "The payment subsidy needed to reach 6.00% grows as market rates rise",
+       x = "30-year mortgage rate in the market (red = latest week)", y = "Subsidy value, % of home price",
+       caption = paste(strwrap("Source: calculation on MORTGAGE30US scenarios; the 84-month loan life is an assumption. Does not include price cuts already made.", 98), collapse = "\n")) +
+  theme_d1()
+```
+
+- Getting a buyer from today's `r sprintf("%.2f%%", cur_rate)` rate down to 6.00% is worth about **`r sprintf("%.1f%%", 100 * cost_to_6(cur_rate))` of the home price**. This is the economic value of the subsidy, not what builders actually pay lenders.
+- Whether builders keep offering incentives at this scale is the question for Driver 2 (Inventory). What it costs them in margin is covered in Driver 4 (Margins).
+
+\newpage
+
+## Supporting analysis: Driver 1
+
+**Rates have fallen twice since 2023, and new-home sales did not rise either time**
+
+- **October 2023 to September 2024:** the 30-year rate fell from `r sprintf("%.2f%%", rm_at("2023-10-01"))` to `r sprintf("%.2f%%", rm_at("2024-09-01"))`. Six months later, new-home sales were `r pct1(ep24_s6)` versus the start.
+- **January 2025 to February 2026:** the rate fell from `r sprintf("%.2f%%", rm_at("2025-01-01"))` to `r sprintf("%.2f%%", rm_at("2026-02-01"))`. Six months later, sales were `r pct1(nm_sales6)` versus the start. `r cite("freddie_pmms", "census_nrs")`
+
+**Hypothesis tests behind this section**
+
+*Test 1: is the rate range honest?* The null hypothesis is that an "80% range" contains the actual 12-month-ahead rate 80% of the time. Each range was rebuilt every week from 1990 using only the data available at that date, then compared with what happened. The tests treat the 12-month windows as about 36 independent observations, because overlapping weeks are not independent, so read them as indicative.
+
+```{r tbl-coverage}
+cv <- pi_bt %>% filter(horizon_weeks == 52, sample == "1990-2026") %>%
+  transmute(Method = method, `Average width (pts)` = sprintf("%.2f", avg_width_pp),
+            `Contained actual rate` = p0(coverage_80), `p-value` = sprintf("%.2f", p_value),
+            Verdict = ifelse(p_value < 0.05, ifelse(coverage_80 < 0.8, "Rejected: too narrow", "Rejected: too wide"), "Not rejected"))
+navy_tbl(cv, align = c("l", "r", "r", "r", "l"),
+      caption = "Exhibit A1.1. Coverage of the 80\\% range at a 12-month horizon, 1990-2026 (target: 80\\%).")
+```
+
+*Test 2: does a 1-point rate drop raise new-home sales?* A regression of the 12-month change in log new-home sales on the 12-month change in the mortgage rate, controlling for the change in unemployment `r cite("bls_unrate")`. The post-2000 effect fades when the rate change is lagged: `r pct1(eff2000_6$sales_effect_of_minus_1pp)` at six months, `r ifelse(eff2000_6$effect_lo95 < 0, "not significant", "still significant")`.
+
+```{r tbl-regression}
+rg <- reg %>% filter(rate_lag_months == 0) %>%
+  transmute(Sample = sample, `Months` = n,
+            `Sales effect of a 1pp drop` = sprintf("%+.1f%%", 100 * sales_effect_of_minus_1pp),
+            `95% interval` = sprintf("%+.1f%% to %+.1f%%", 100 * effect_lo95, 100 * effect_hi95),
+            `R²` = sprintf("%.2f", r2))
+navy_tbl(rg, align = c("l", "r", "r", "r", "r"),
+      caption = "Exhibit A1.2. Regression of the 12-month change in log new-home sales on the 12-month change in the 30-year rate (no lag).")
+```

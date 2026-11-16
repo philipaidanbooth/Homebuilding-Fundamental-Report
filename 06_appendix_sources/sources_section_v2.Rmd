@@ -1,0 +1,59 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+colorlinks: true
+urlcolor: navy
+linkcolor: navy
+header-includes: |
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \setlength{\headsep}{8pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{5pt}{1pt}
+  \AtBeginDocument{\small}
+  \setlength{\parskip}{1pt}
+---
+
+<!--
+Sources page. Reads sources.csv so numbers match cite() in every
+section. All entries, including the Atlanta Fed HOAM cross-check and the builder filing history, now live in sources.csv.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+s <- read.csv("sources.csv", stringsAsFactors = FALSE, encoding = "UTF-8", na.strings = character(0))
+s <- s[order(s$n), ]
+esc <- function(x) gsub("([&%#_$])", "\\\\\\1", x)
+```
+
+```{=latex}
+{\footnotesize\bfseries\color{teal}SOURCES}\par\vspace{3pt}
+{\fontsize{18}{21}\selectfont\bfseries\color{navy}Sources\par}
+\vspace{6pt}
+```
+
+All inputs are public. Bracketed numbers in the text refer to this list. Data series were downloaded from FRED (Federal Reserve Bank of St. Louis) at the current vintage on the access date; filings and releases were read on November 10, 2026.
+
+```{r list, results="asis"}
+for (g in unique(s$group)) {
+  cat("\n## ", g, "\n\n", sep = "")
+  sg <- s[s$group == g, ]
+  for (i in seq_len(nrow(sg))) {
+    link <- if (nzchar(sg$url[i])) sprintf(" \\href{%s}{Link}", sg$url[i]) else ""
+    cat(sprintf("\\noindent[%d] %s%s\\par\\vspace{0.5pt}\n\n", sg$n[i], esc(sg$citation[i]), link))
+  }
+}
+```

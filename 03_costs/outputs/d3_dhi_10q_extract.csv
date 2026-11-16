@@ -1,0 +1,14 @@
+metric,q3_fy25,q3_fy26,unit,basis,source
+homes_closed,"23,160","23,983",homes,Observed,"DHI 10-Q Q3 FY26 and FY25, Key Results"
+average_closing_price,369600,362000,$,Observed,"DHI 10-Q Q3 FY26 ($362,000) and FY25 ($369,600), Key Results"
+home_sales_gross_margin_pct,21.8,20.7,%,Observed,"DHI 10-Q Q3 FY26, Homebuilding Operating Margin Analysis"
+home_sales_gross_margin_9mo_pct,22.1,20.4,%,Observed,"DHI 10-Q Q3 FY26, Homebuilding Operating Margin Analysis"
+implied_cost_of_sales_per_home,289027,287066,$,Calc: closing price x (1 - gross margin). Rounded inputs; see flag,calc
+implied_cost_yoy_pct,,-0.7,%,Calc; see flag,calc
+closing_price_yoy_pct,,-2.1,%,Calc,calc
+owned_lots,145900,126600,lots,Observed,"DHI 10-Q Q3 FY26, Key Results (June 30, 2025 and 2026)"
+lots_controlled_via_purchase_contracts,455500,441900,lots,Observed,"DHI 10-Q Q3 FY26, Key Results"
+controlled_share_of_owned_and_controlled_pct,76,78,%,Observed,"DHI 10-Q Q3 FY26, MD&A overview"
+residential_land_and_lots_balance_musd,14252.7,14318.9,$ millions,Observed,"DHI balance sheet, June 30, 2025 and 2026 (includes land under development and Forestar)"
+land_balance_per_owned_lot_usd,97688,113103,$,Calc: rough proxy only; balance scope differs from lot count; see flag,calc
+land_balance_per_owned_lot_yoy_pct,,15.8,%,Calc; rough proxy,calc

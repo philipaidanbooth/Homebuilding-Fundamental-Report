@@ -1,0 +1,341 @@
+---
+title: "Driver 4: Margins"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering, skip=2pt}
+  \captionsetup[figure]{font={footnotesize,it}}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \definecolor{calloutfill}{HTML}{FFF3CD}
+  \definecolor{calloutline}{HTML}{D39B2F}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \setlength{\headsep}{8pt}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{9pt}{3pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{callout}{colback=calloutfill,colframe=calloutline,boxrule=0.6pt,arc=0pt,left=6pt,right=6pt,top=4pt,bottom=4pt}
+  \usepackage{enumitem}
+  \setlist[itemize]{topsep=2pt,itemsep=1.5pt,parsep=0pt}
+  \renewcommand{\maketitle}{}
+---
+
+<!--
+Numbers are NOT typed here: they are read from CSVs through inline R code.
+Knit from the 04_margins folder. Reads only; no downloading.
+Inputs: ../data_ready/builders_latest_quarter.csv (master builder table, checked against earnings releases,
+see VERIFICATION_LOG.csv); ../01_affordability/outputs/pi_scenario_bins.csv (scenario weights);
+outputs/d4_*.csv (starts model, written by scripts/d4_starts_model.py); data/d4_*.csv (this report's assumptions).
+Packages: ggplot2, dplyr, readr, tidyr, scales, lubridate, knitr, kableExtra.
+Structure: two points. (1) price vs cost per home, with the margin change by builder; (2) the starts model,
+the three rate scenarios and the margin sensitivity. Appendix A4.1-A4.3 holds permit paths, the starts-model out-of-sample test and builder margin definitions.
+-->
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({library(ggplot2); library(dplyr); library(readr); library(tidyr)
+  library(scales); library(lubridate); library(knitr); library(kableExtra)})
+source("../06_appendix_sources/cite.R")   # numbered citations: cite("key")
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+  out.width = if (knitr::is_latex_output()) "78%" else "100%",
+  fig.align = "center", fig.width = 9, fig.height = 4.5, dpi = 160, dev = "png")
+NAVY <- "#1f3350"; RED <- "#b5524f"; GREY <- "#8a8f98"   # red = today / stress; navy = everything else
+LNAVY <- "#7d8fb0"; GREEN <- "#3f7d54"; GOLD <- "#c9973a"
+theme_d1 <- function() {
+  theme_classic(base_size = 11) +
+    theme(text = element_text(colour = "#222222"),
+      panel.grid.major.y = element_line(colour = "#dddddd", linewidth = 0.4),
+      panel.grid.major.x = element_blank(),
+      axis.line = element_line(colour = "#222222", linewidth = 0.5),
+      axis.ticks = element_line(colour = "#222222", linewidth = 0.4),
+      axis.text = element_text(colour = "#555555", size = 9),
+      axis.title = element_text(colour = "#111111", size = 10),
+      plot.title = element_text(face = "bold", size = 12.5, colour = NAVY, hjust = 0.5, margin = margin(b = 8)),
+      plot.title.position = "panel",
+      plot.caption = element_text(colour = "#777777", size = 11, hjust = 0, margin = margin(t = 10)),
+      plot.caption.position = "plot",
+      legend.position = "top", legend.justification = "left", legend.title = element_blank(),
+      legend.key = element_blank(), legend.text = element_text(size = 9), strip.background = element_blank())
+}
+# small table with navy header and bordered grid
+# column_spec with cell text centred vertically (needs kableExtra 1.2+; falls back to top-aligned on older versions)
+col_spec <- function(...) if ("latex_valign" %in% names(formals(kableExtra::column_spec))) kableExtra::column_spec(..., latex_valign = "m") else kableExtra::column_spec(...)
+grid_tbl <- function(df, align, widths, font_size = 9, hl = NULL, bold_first = TRUE) {
+  k <- kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  if (!is.null(hl)) k <- row_spec(k, hl, background = "#e8eef6")
+  for (i in seq_along(widths)) k <- col_spec(k, i, width = paste0(widths[i], "cm"), bold = bold_first && i == 1)
+  k
+}
+exh <- function(txt) cat(sprintf("\n\\begin{center}{\\small\\itshape %s}\\end{center}\\vspace{3pt}\n", txt))
+
+# ---- data (CSVs only) ---------------------------------------------------------------
+b    <- read_csv("../data_ready/builders_latest_quarter.csv", show_col_types = FALSE)
+d1   <- read_csv("../01_affordability/outputs/pi_scenario_bins.csv", show_col_types = FALSE) %>% filter(horizon_weeks == 52)
+est  <- read_csv("outputs/d4_model_estimates.csv", show_col_types = FALSE)
+oos  <- read_csv("outputs/d4_oos_by_horizon.csv", show_col_types = FALSE)
+sc   <- read_csv("outputs/d4_scenario_paths.csv", show_col_types = FALSE) %>% mutate(date = as.Date(paste0(month, "-01")))
+hs   <- read_csv("outputs/d4_history.csv", show_col_types = FALSE) %>% mutate(date = as.Date(date))
+sa   <- read_csv("data/d4_scenario_assumptions.csv", show_col_types = FALSE)
+sens_cases <- read_csv("data/d4_sensitivity_cases.csv", show_col_types = FALSE)
+inc  <- read_csv("data/d4_incentive_notes.csv", show_col_types = FALSE)
+d3k  <- read_csv("../03_costs/outputs/d3_key_numbers_v2.csv", show_col_types = FALSE)   # independent price and cost checks
+kv3  <- function(n) d3k$value[d3k$name == n]
+b_src <- cite("dhi_8k", "len_8k", "len_10q", "phm_8k", "phm_10q", "nvr_8k", "kbh_8k", "mth_release", "tol_release")
+
+bv  <- function(name, col) b[[col]][b$builder == name]
+ev  <- function(t) est$coef[est$term == t]
+sg  <- function(x, d = 1) sprintf(paste0("%+.", d, "f%%"), x)
+k0  <- function(x) paste0(format(round(x), big.mark = ","), "K")
+pct <- function(x) sprintf("%.0f%%", 100 * x)
+bpsr <- function(x) sprintf("%.0f", round(abs(x), -1))            # bps rounded to 10
+
+# builder aggregates: revenue-weighted and median
+wt       <- b$rev_musd / sum(b$rev_musd)
+gm_now   <- sum(wt * b$gm); gm_prior <- sum(wt * b$gm_prior)
+gm_chg_w <- sum(wt * b$gm_change_bps); gm_chg_med <- median(b$gm_change_bps)
+asp_w    <- sum(wt * b$asp_yoy_pct); cost_w <- sum(wt * b$implied_cost_yoy_pct)
+med_asp  <- median(b$asp_yoy_pct); med_cost <- median(b$implied_cost_yoy_pct)
+n_b      <- c("one","two","three","four","five","six","seven","eight","nine","ten")[nrow(b)]   # count as a word
+# share of the margin decline that the change in reported price alone accounts for (prior cost per home held)
+pm_bps   <- ((1 - b$implied_cost_per_home_prior / b$asp) * 100 - b$gm_prior) * 100
+pm_w     <- sum(wt * pm_bps); len_share <- (wt * pm_bps)[b$builder == "Lennar"] / pm_w
+len_wt   <- wt[b$builder == "Lennar"]
+
+# margin arithmetic: exact change in gross margin for a price change p and a cost-per-home change c (both in %)
+gm_shift <- function(p, c, gm = gm_now) ((1 - (1 - gm / 100) * (1 + c / 100) / (1 + p / 100)) - gm / 100) * 1e4
+sens     <- 100 - gm_now                                           # bps of margin per 1% of price or cost (first order)
+sens_cases$margin_bps <- mapply(gm_shift, sens_cases$price_change_pct, sens_cases$cost_change_pct)
+scv <- function(case, col) sens_cases[[col]][sens_cases$case == case]
+
+# scenarios: weights summed from the Driver 1 rate distribution (52-week row)
+sa$weight <- sapply(strsplit(sa$weight_bins, "|", fixed = TRUE), function(cols) sum(unlist(d1[cols])))
+ss <- sc %>% group_by(scenario) %>%
+  summarise(avg = mean(starts_3m_k), lo = min(starts_3m_k), end = last(starts_3m_k), p_end = last(permits_k), p_lo = min(permits_k), p_avg = mean(permits_k), .groups = "drop")
+sv <- function(s, col) ss[[col]][ss$scenario == s]
+av <- function(s, col) sa[[col]][sa$scenario == s]
+mrange <- function(s) if (av(s, "margin_high_bps") == 0) "Could stabilize with substantial rate relief" else sprintf("%d-%d bps lower", av(s, "margin_low_bps"), av(s, "margin_high_bps"))
+cutrng <- function(s) sprintf("%.1f%% to %.1f%%", av(s, "margin_low_bps") / sens, av(s, "margin_high_bps") / sens)
+ov  <- function(h, col) oos[[col]][oos$horizon == h]
+last_hist <- max(hs$date[!is.na(hs$starts_3m)])
+n_oos <- ov(1, "n_forecasts")
+hw12 <- ov(12, "band80_half_width_k"); hw1 <- ov(1, "band80_half_width_k")
+gap12 <- sv("upside", "end") - sv("base", "end")
+# permit sensitivity: change in the 12-month average of starts when the permit path is shifted by 1K in every month
+perm_pass <- local({  # 12-month average starts response to a 1K permit shift, incl. the 3-month-average ramp-in
+  b <- ev("permits_3m"); a <- ev("starts_3m_lag1"); s <- 0; out <- numeric(12)
+  for (i in 1:12) { s <- b * min(i, 3) / 3 + a * s; out[i] <- s }
+  mean(out)
+})
+gap_s_avg <- sv("upside", "avg") - sv("base", "avg"); gap_p_avg <- sv("upside", "p_avg") - sv("base", "p_avg")
+```
+
+```{=latex}
+{\footnotesize\bfseries\color{teal}DRIVER 4 | MARGINS}
+
+{\fontsize{20}{24}\selectfont\bfseries\color{navy} Margin compression is an adjustment, not a collapse}
+
+\vspace{4pt}
+\begin{callout}
+```
+
+Builders are accepting lower gross margins while using price cuts and incentives, such as mortgage-rate buydowns, to support sales. With affordability still stretched (Driver 1) and finished inventory elevated (Driver 2), margin pressure is likely to continue over the next 6-12 months. In the base case starts hold near today's level, which points to a slow adjustment rather than a collapse.
+
+```{=latex}
+\end{callout}
+\vspace{2pt}
+```
+
+## 1. Margins fell at all seven builders
+
+```{r pricecost, fig.width=9, fig.height=3.5, out.width="100%", fig.cap="Exhibit 4.1. Selling price and implied cost per home, change from a year earlier. Cost per home is not reported: it is derived as selling price x (1 - gross margin), so the gap between the two bars restates the margin change rather than adding a separate measurement. Quarters and margin definitions differ by builder (Exhibit A4.3)."}
+pc <- b %>% transmute(builder = reorder(builder, asp_yoy_pct),
+                      `Average selling price` = asp_yoy_pct, `Implied cost per home` = implied_cost_yoy_pct) %>%
+  pivot_longer(-builder, names_to = "s", values_to = "v") %>%
+  mutate(s = factor(s, levels = c("Implied cost per home", "Average selling price")))
+ggplot(pc, aes(v, builder, fill = s)) +
+  geom_vline(xintercept = 0, colour = GREY, linewidth = 0.4) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.7) +
+  geom_text(aes(label = ifelse(v == 0, "0.0%", sprintf("%+.1f%%", v)), hjust = ifelse(v > 0, -0.15, 1.15)),
+            position = position_dodge(width = 0.75), size = 3.3, vjust = 0.5, colour = "#333333") +
+  scale_fill_manual(values = c(`Average selling price` = RED, `Implied cost per home` = NAVY),
+                    breaks = c("Average selling price", "Implied cost per home")) +
+  scale_x_continuous(limits = c(-5, 6), breaks = seq(-4, 4, 2)) +
+  labs(title = "Selling prices fell at most builders, but cost per home mostly rose",
+       x = "Change from a year earlier (%)", y = NULL,
+       caption = paste(strwrap(paste0("Sources: builder earnings releases and 10-Qs for the latest reported quarter ", b_src, "; author calculations. D.R. Horton's price and margin are calculated from its release tables."), 108), collapse = "\n")) +
+  theme_d1() + theme(panel.grid.major.y = element_blank(), plot.title = element_text(margin = margin(b = 3)),
+                     legend.margin = margin(0, 0, 0, 0), legend.box.spacing = unit(2, "pt"), plot.caption = element_text(margin = margin(t = 4)))
+```
+
+```{=latex}
+\vspace{-10pt}
+```
+
+- **What the data shows:** the median builder's selling price is `r sg(med_asp)` from a year earlier while its implied cost per home is `r sg(med_cost)` (range `r sg(min(b$implied_cost_yoy_pct))` to `r sg(max(b$implied_cost_yoy_pct))`). Cost per home is all-in (land, construction, capitalized interest) and moves with the mix of homes sold; Toll Brothers' `r sg(bv("Toll Brothers", "implied_cost_yoy_pct"))` comes with a `r sg(bv("Toll Brothers", "asp_yoy_pct"))` rise in its selling price, which suggests a shift toward more expensive homes.
+- **Independent check:** because cost per home is derived from price and margin, Exhibit 4.1 cannot on its own show that price is falling faster than cost. Data that do not depend on builder margins point the same way: the Census median new-home price is `r sg(kv3("median_new_home_price_yoy_pct"))` from a year earlier in September `r cite("census_nrs")`, while producer prices for goods inputs to single-family construction are `r sg(kv3("goods_input_ppi_yoy_pct"))` `r cite("bls_ppi")` (Driver 3). Input prices are not cost per home, and Lennar reports construction cost per square foot `r sg(kv3("lennar_construction_cost_per_sqft_yoy_pct"), 0)` `r cite("len_10q")`, so direct cost evidence is mixed; the firm finding is the margin decline itself.
+- **Margins fell at all `r n_b` builders:** gross margin is down `r bpsr(gm_chg_med)` basis points (bps) at the median builder and `r bpsr(gm_chg_w)` bps on a revenue-weighted basis (`r sprintf("%.1f", gm_prior)`% to `r sprintf("%.1f", gm_now)`%) `r b_src`. The two measures agree in direction, so the result is not driven by Lennar, which is `r pct(len_wt)` of the weight. The range runs from `r sprintf("%.0f", bv("D.R. Horton", "gm_change_bps"))` bps (D.R. Horton) to `r sprintf("%.0f", bv("NVR", "gm_change_bps"))` bps (NVR). Orders do not explain it: Toll's are `r sg(bv("Toll Brothers", "orders_yoy_pct"))` and Meritage's `r sg(bv("Meritage Homes", "orders_yoy_pct"))`, yet both lost `r sprintf("%.0f", abs(bv("Toll Brothers", "gm_change_bps")))` bps.
+- **Reported price may understate the price cut:** builders record incentives in different places. Lennar's reported average price is stated after incentives of about `r sprintf("%.1f", inc$value[inc$item == "incentives_pct_of_price"])`% of price `r cite("len_8k")`, and Meritage cites incentives as a reason for both its lower selling price and its higher cost of sales `r cite("mth_release")`. Reported selling prices may understate the full cost of incentives when mortgage-rate buydowns or closing-cost credits are recorded separately, so the split between price and cost in Exhibit 4.1 depends on each builder's accounting. The margin change captures both.
+- **What gross margin compression means:** gross margin is the percentage of home sales revenue remaining after land and construction costs. Gross margin compression occurs when that percentage declines, often because selling prices fall faster than costs.
+- **Why it matters:** costs are not falling enough to offset price cuts and incentives (Driver 3), so the pressure shows up in margins at all seven builders, including those targeting different buyers.
+
+
+\newpage
+
+## 2. Starts level off in the base case, but margins do not recover
+
+```{r startsfig, fig.width=9, fig.height=3.7, out.width="100%", fig.cap="Exhibit 4.2. Single-family starts, seasonally adjusted annual rate (3-month average), with three scenario paths and an 80\\% band on the base path, assuming its permit path is known."}
+ha <- hs %>% filter(date >= as.Date("2024-01-01"), !is.na(starts_3m))
+cut <- max(ha$date)
+bs <- sc %>% filter(scenario == "base")
+ends <- sc %>% group_by(scenario) %>% slice_max(date, n = 1) %>% ungroup() %>%
+  mutate(lab = c(upside = "Upside", base = "Base", downside = "Downside")[scenario])
+ymax <- max(ha$starts_3m, bs$band80_high)
+ggplot() +
+  geom_ribbon(data = bs, aes(date, ymin = band80_low, ymax = band80_high), fill = GOLD, alpha = 0.18) +
+  geom_vline(xintercept = cut + 15, colour = GREY, linetype = "dotted", linewidth = 0.5) +
+  geom_line(data = ha, aes(date, starts_3m), colour = NAVY, linewidth = 1) +
+  geom_line(data = sc, aes(date, starts_3m_k, colour = scenario), linewidth = 1) +
+  geom_text(data = ends, aes(date + 15, starts_3m_k, label = lab, colour = scenario), hjust = 0, size = 3.4, fontface = "bold") +
+  annotate("text", x = as.Date("2024-08-15"), y = 1062, label = "Actual starts (3M avg)", colour = NAVY, size = 3.4, hjust = 0) +
+  annotate("text", x = cut - 20, y = ymax, label = "Forecast", colour = "#777777", size = 3.2, hjust = 1) +
+  scale_colour_manual(values = c(upside = GREEN, base = GOLD, downside = RED), guide = "none") +
+  scale_x_date(breaks = seq(as.Date("2024-01-01"), as.Date("2027-10-01"), by = "6 months"), date_labels = "%b %Y",
+               limits = c(as.Date("2024-01-01"), as.Date("2028-01-20")), expand = c(0.01, 0)) +
+  scale_y_continuous(breaks = seq(750, 1100, 50)) +
+  labs(title = "Starts stabilize in the base case, but not enough to lift margins",
+       x = NULL, y = "Single-family starts (thousands)",
+       caption = paste(strwrap(paste0("Source: author's model, estimated on Census building permits and housing starts ", cite("census_nrc"), ". Each path is conditional on the permit assumption in Exhibit A4.1. Shaded: 80% band on the base path, from the model's out-of-sample errors when the permit path is known; it does not include uncertainty about future permits."), 108), collapse = "\n")) +
+  theme_d1()
+```
+
+```{=latex}
+\renewcommand{\arraystretch}{1.4}\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}
+```
+
+```{r sctab, results="asis"}
+exh("Exhibit 4.3. Three rate scenarios for the next 12 months and what each means for builders. The shaded rows are the base case.")
+b5 <- function(n) pct(d1[[n]])
+st3 <- function(s) sprintf("Avg %s; low %s", k0(sv(tolower(s), "avg")), k0(sv(tolower(s), "lo")))
+tab <- tibble(
+  Scenario = c("Upside", "Base: leaning better", "Base: core", "Base: leaning worse", "Downside"),
+  `30-year rate in 12 months` = c("Below 6.25%", "6.25% to 6.75%", "6.75% to 7.50%", "7.50% to 8.00%", "Above 8.00%"),
+  `Model-derived scenario weight` = c(b5("<6.25"), b5("6.25-6.75"), b5("6.75-7.50"), b5("7.50-8.00"), b5(">8.00")),
+  `Starts, 3M average` = c(st3("Upside"), "Base path or slightly above", st3("Base"), "Base path or slightly below", st3("Downside")),
+  `Finished inventory` = c(av("Upside", "inventory_direction"), "As base, slightly faster", av("Base", "inventory_direction"),
+                            "As base, slightly slower", av("Downside", "inventory_direction")),
+  `Gross margin vs prior year` = c(mrange("Upside"), "Low end of the base range", mrange("Base"),
+                                   "Top of the base range or beyond", mrange("Downside")))
+grid_tbl(tab, c("l", "c", "c", "c", "c", "c"), c(2.6, 2.3, 2.0, 3.3, 3.2, 2.9), hl = 2:4)
+```
+
+The base case spans 6.25-8.00% and carries about `r pct(av("Base", "weight"))` of the model's weight. A smaller decline, to 6.25-6.75%, is included in the base case because it would likely not be enough to restore margins; only rates below 6.25% are treated as the upside.
+
+```{r senstab, results="asis"}
+exh("Exhibit 4.4. Margin sensitivity: what a further change in price and cost per home does to gross margin.")
+fm <- function(x) ifelse(x == 0, "0%", sprintf("%+.1f%%", x))
+st <- tibble(Input = c("Effective price change", "Cost per home change", "Implied gross-margin change", "Implied gross margin"))
+for (cs in sens_cases$case) st[[cs]] <- c(fm(scv(cs, "price_change_pct")), fm(scv(cs, "cost_change_pct")),
+  ifelse(round(scv(cs, "margin_bps")) == 0, "0 bps", sprintf("%+.0f bps", scv(cs, "margin_bps"))),
+  sprintf("%.1f%%", gm_now + scv(cs, "margin_bps") / 100))
+grid_tbl(st, c("l", "c", "c", "c"), c(5.2, 3.1, 3.1, 3.1), hl = 3)
+```
+
+```{=latex}
+\renewcommand{\arraystretch}{1}\arrayrulecolor{black}
+```
+
+- **What the model shows:** in the base case, starts fall to about `r k0(sv("base", "lo"))` and recover to `r k0(sv("base", "end"))`, an average of `r k0(sv("base", "avg"))` (Exhibit 4.2).
+- **What it rests on:** each starts path uses an assumed permit path for each scenario (Exhibit A4.1). A permit authorizes construction and a start marks when it begins, so permits come first; the model turns permits into starts but does not forecast permits itself. Starts move closely with permits: a permit path 50K higher (or lower) in every month moves the 12-month average of starts by about `r k0(50 * perm_pass)`. The upside path's permits average `r k0(gap_p_avg)` above the base path's and its starts average `r k0(gap_s_avg)` above, so nearly all of the difference between the scenarios comes from the permit assumptions.
+- **How far to trust it:** tested out of sample on `r n_oos` months with future permits not known, the model's average error is `r sprintf("%.1f", ov(3, "model_flat_permits_mape_pct"))`% at 3 months, `r sprintf("%.1f", ov(6, "model_flat_permits_mape_pct"))`% at 6 and `r sprintf("%.1f", ov(12, "model_flat_permits_mape_pct"))`% at 12, against `r sprintf("%.1f", ov(3, "no_change_mape_pct"))`%, `r sprintf("%.1f", ov(6, "no_change_mape_pct"))`% and `r sprintf("%.1f", ov(12, "no_change_mape_pct"))`% for a forecast of no change (Exhibit A4.2). The model is more accurate than no change at 3, 6 and 12 months. The 80% band in Exhibit 4.2, about ±`r k0(hw12)` at 12 months, assumes the permit path is known; the `r sprintf("%.1f", ov(12, "model_flat_permits_mape_pct"))`% error above, with permits unknown, is the better guide to forecast uncertainty. The model shows what starts would do under the permit path assumed for each rate scenario; it does not link rates to starts directly or predict which scenario will occur.
+- **Where the margin range comes from:** gross margin = 1 - cost per home / price, so at today's `r sprintf("%.1f", gm_now)`% margin each 1% change in price or in cost per home moves margin by about `r sprintf("%.0f", sens)` bps. The base inputs in Exhibit 4.4 follow one rule: repeat the past year's revenue-weighted change for the `r n_b` builders (price `r sg(asp_w)`, cost per home `r sg(cost_w)`), rounded to the nearest half point (`r fm(scv("Base", "price_change_pct"))` and `r fm(scv("Base", "cost_change_pct"))`). That takes about `r sprintf("%.0f", abs(scv("Base", "margin_bps")))` bps off margin, close to the past year's revenue-weighted decline of `r bpsr(gm_chg_w)` bps. The base range of `r av("Base", "margin_low_bps")`-`r av("Base", "margin_high_bps")` bps runs from about half that pace, if incentives ease as finished inventory clears, to slightly above it. The downside range of `r av("Downside", "margin_low_bps")`-`r av("Downside", "margin_high_bps")` bps covers the high-pressure case (`r fm(scv("High pressure", "price_change_pct"))` price, `r fm(scv("High pressure", "cost_change_pct"))` cost, about `r sprintf("%.0f", abs(scv("High pressure", "margin_bps")))` bps), close to the deepest single-builder decline of the past year (NVR, `r sprintf("%.0f", abs(bv("NVR", "gm_change_bps")))` bps). Substantial mortgage-rate relief could allow margins to stabilize. These ranges are this report's judgment set by that rule, not model output; "prior year" means the same quarter a year earlier, so 12 months from now the comparison is with today's `r sprintf("%.1f", gm_now)`%.
+- **Why it matters:** even if builders gradually reduce finished inventory, they will likely keep offering incentives while supply remains above 2018-19 levels. With flat costs, the base range needs only a further `r cutrng("Base")` cut in effective price, the same order as the past year's.
+
+## What would change this view
+
+- **Mortgage rates fall below 6.25%:** more buyers could come back, and builders could reduce finished inventory without relying as heavily on incentives.
+- **Higher input costs raise construction costs** (the Driver 3 risk): if rising material and labor prices push up builders' cost per home, each 1% increase would compress gross margins by about `r sprintf("%.0f", sens)` bps, pushing the forecast toward the downside case.
+- **Mortgage rates rise above 8.00%, or stay above 7.50% while demand weakens further:** finished inventory could build again (the Driver 2 stress case), adding pressure for larger discounts. The downside starts path comes from lower assumed permits, not from a rate estimate.
+
+**Verdict:** gross margins are likely to be `r av("Base", "margin_low_bps")`-`r av("Base", "margin_high_bps")` bps lower in 12 months in the base case. Costs are not offsetting lower prices (Driver 3), finished inventory is still above 2018-19 levels (Driver 2) and affordability is stretched (Driver 1), leaving little room for a margin recovery. Alternative scenarios and signposts are covered in the next section.
+
+## Limitations
+
+- The starts model takes permits as given. It does not forecast permits, mortgage rates or margins, and a two-stage model that first forecasts permits is outside this report's scope.
+- The out-of-sample test covers one `r n_oos`-month stretch. The model was not tested over other periods.
+- Price, land, construction and carrying cost cannot be separated with public data, so there is no full margin bridge. Cost per home is derived from price and margin, not measured, and both mix price cuts, incentives, home size and geography.
+- The margin ranges are judgment set by a stated rule; they are not drawn from a historical distribution of margin changes under similar conditions.
+- The sample is `r n_b` builders with different quarters and margin definitions, not the whole industry.
+
+\newpage
+
+## Supporting analysis: Driver 4
+
+```{=latex}
+\renewcommand{\arraystretch}{1.25}\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}
+```
+
+```{r permtab, results="asis"}
+exh("Exhibit A4.1. Permit assumption and resulting starts path for each scenario (thousands, seasonally adjusted annual rate).")
+pw <- sc %>% mutate(m = format(date, "%b %Y")) %>% select(m, date, scenario, permits_k, starts_3m_k) %>%
+  pivot_wider(names_from = scenario, values_from = c(permits_k, starts_3m_k)) %>% arrange(date)
+pt <- pw %>% transmute(Month = m,
+  `Permits: upside` = sprintf("%.0f", permits_k_upside), `Permits: base` = sprintf("%.0f", permits_k_base), `Permits: downside` = sprintf("%.0f", permits_k_downside),
+  `Starts 3M: upside` = sprintf("%.0f", starts_3m_k_upside), `Starts 3M: base` = sprintf("%.0f", starts_3m_k_base), `Starts 3M: downside` = sprintf("%.0f", starts_3m_k_downside))
+grid_tbl(pt, c("l", rep("c", 6)), c(2.0, 2.2, 2.2, 2.2, 2.2, 2.2, 2.2), font_size = 8.5)
+```
+
+```{=latex}
+{\footnotesize \textbf{Model:} Starts(t) = `r sprintf("%.1f", ev("const"))` + `r sprintf("%.3f", ev("permits_3m"))` x Permits(t) + `r sprintf("%.3f", ev("starts_3m_lag1"))` x Starts(t-1), on 3-month averages, fitted on `r sprintf("%.0f", ev("n_obs"))` months to `r format(last_hist, "%B %Y")`. Full method in Data \& Methodology.\par}
+\vspace{3pt}
+{\footnotesize How each permit path was set (this report's assumptions; monthly permits enter the model as a 3-month average). \textbf{Base:} `r tolower(substr(av("Base", "permit_path_rule"), 1, 1))``r substring(av("Base", "permit_path_rule"), 2)`. \textbf{Upside:} `r tolower(substr(av("Upside", "permit_path_rule"), 1, 1))``r substring(av("Upside", "permit_path_rule"), 2)`. \textbf{Downside:} `r tolower(substr(av("Downside", "permit_path_rule"), 1, 1))``r substring(av("Downside", "permit_path_rule"), 2)`.\par}
+\vspace{6pt}
+```
+
+```{r oostab, results="asis"}
+exh("Exhibit A4.2. Out-of-sample test of the starts model: average absolute error by forecast horizon.")
+f1 <- function(x) sprintf("%.1f%%", x); fk <- function(x) sprintf("%.0fK", x)
+ot <- oos %>% filter(horizon %in% c(1, 3, 6, 12)) %>% transmute(
+  Horizon = paste(horizon, ifelse(horizon == 1, "month", "months")),
+  `Model, future permits not known` = paste0(f1(model_flat_permits_mape_pct), " (", fk(model_flat_permits_mae_k), ")"),
+  `No-change benchmark` = paste0(f1(no_change_mape_pct), " (", fk(no_change_mae_k), ")"),
+  `Model, given actual permits` = paste0(f1(model_known_permits_mape_pct), " (", fk(model_known_permits_mae_k), ")"),
+  `80% band, ±` = fk(band80_half_width_k))
+grid_tbl(ot, c("l", "c", "c", "c", "c"), c(2.2, 4.2, 3.3, 3.8, 2.2), font_size = 8.5)
+```
+
+```{=latex}
+{\footnotesize Expanding window: for each of the `r n_oos` target months from `r format(min(as.Date(paste0(read_csv("outputs/d4_oos_errors.csv", show_col_types = FALSE)$target, "-01"))), "%B %Y")` to `r format(last_hist, "%B %Y")`, the model is re-fitted on data up to the forecast date only. "Future permits not known" holds permits at their last known 3-month average; "given actual permits" feeds in the permits that occurred, which is how the scenario paths use the model. The 80\% band is 1.28 x the root-mean-square error of the first column. Forecast errors at long horizons overlap, so the 12-month figures rest on few independent observations. In-sample fit (R² `r sprintf("%.2f", ev("r_squared"))`) is not used as evidence of forecast accuracy.\par}
+\vspace{6pt}
+```
+
+\newpage
+
+```{r deftab, results="asis"}
+exh("Exhibit A4.3. Builder gross margin: quarter, levels and definition used.")
+dt <- b %>% arrange(desc(rev_musd)) %>% transmute(Builder = builder, Quarter = period,
+  `Now` = sprintf("%.1f%%", gm), `Year ago` = sprintf("%.1f%%", gm_prior), `Change` = sprintf("%+.0f bps", gm_change_bps),
+  `Orders y/y` = sg(orders_yoy_pct), `Margin definition` = gm_definition)
+grid_tbl(dt, c("l", "l", "c", "c", "c", "c", "l"), c(2.0, 2.9, 0.9, 1.1, 1.3, 1.1, 5.0), font_size = 7.5)
+```
+
+```{=latex}
+\renewcommand{\arraystretch}{1}\arrayrulecolor{black}
+{\footnotesize Margins are shown to one decimal, as published; a change computed from one-decimal levels can differ from the unrounded change by up to about 10 bps (D.R. Horton `r sprintf("%.0f", bv("D.R. Horton", "gm_change_bps_unrounded"))` bps and NVR `r sprintf("%.0f", bv("NVR", "gm_change_bps_unrounded"))` bps unrounded). Revenue weights are latest-quarter home-sales revenue. Gross margin is home-sales gross margin as each builder reports it, definitions differ (last column), so compare changes, not levels. Quarters differ: Toll May-Jul; Lennar and KB Home Jun-Aug; the others Jul-Sep 2026. Sources: `r b_src`; accessed 2026-11-10.\par}
+```

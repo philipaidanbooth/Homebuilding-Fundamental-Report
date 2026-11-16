@@ -1,0 +1,14 @@
+metric,q3_fy24,q3_fy25,q3_fy26,unit,basis,source
+home_sale_revenues_thousands,4343227,4248375,3859030,$000,Observed,"PHM 10-Q Q3 FY25 and Q3 FY26, Homebuilding selected financial information"
+home_sale_cost_of_revenues_thousands,3091267,3133548,2901856,$000,Observed (includes amortization of capitalized interest),"PHM 10-Q Q3 FY25 and Q3 FY26, Homebuilding selected financial information"
+closings,7924,7529,6876,units,Observed,"PHM 10-Q Q3 FY25 and Q3 FY26, Homebuilding selected financial information"
+gross_margin_home_sales_pct,28.8,26.2,24.8,%,Observed,"PHM 10-Q Q3 FY25 and Q3 FY26, Homebuilding selected financial information"
+average_selling_price_reported_thousands,548,564,561,$000,Observed,"PHM 10-Q Q3 FY25 and Q3 FY26, Homebuilding selected financial information"
+revenue_per_closing_calc,548110,564268,561232,$,Calc: revenues / closings,calc
+cost_per_closing_calc,390114,416197,422027,$,"Calc: cost of revenues / closings; all-in cost incl. land, construction, capitalized interest",calc
+cost_per_closing_yoy_pct,,6.7,1.4,%,Calc,calc
+revenue_per_closing_yoy_pct,,2.9,-0.5,%,Calc,calc
+owned_lots,,101776,101760,lots,Observed,"PHM 10-Q Q3 FY25 and FY26, Controlled lots table (Sep 30)"
+optioned_lots,,138475,122515,lots,Observed,"PHM 10-Q Q3 FY25 and FY26, Controlled lots table"
+total_controlled_lots,,240251,224275,lots,Observed,"PHM 10-Q Q3 FY25 and FY26, Controlled lots table"
+owned_share_of_controlled_pct,,42,45,%,Observed,"PHM 10-Q Q3 FY25 and FY26, Controlled lots table"

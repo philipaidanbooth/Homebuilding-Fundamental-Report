@@ -1,0 +1,23 @@
+# NAHB/Wells Fargo HMI special questions: share of builders cutting prices, average price cut,
+# share using sales incentives. No machine-readable public series exists (NAHB's downloadable
+# HMI tables t1-t5 carry only the headline index, components and regions), so each row is
+# transcribed by hand from NAHB's monthly HMI post on eyeonhousing.org (public, no login).
+# Values are AS FIRST PUBLISHED; NAHB revises the headline HMI later (Table 2 has the revised
+# value; the script flags differences). Blank rows = not yet transcribed; fill from the URL pattern
+# https://eyeonhousing.org/YYYY/MM/<post-slug>/ or nahb.org/hmi press releases.
+# Columns: month (survey month), hmi_as_published, share_cut_prices_pct, avg_price_cut_pct,
+# share_using_incentives_pct, release_date, source_url, accessed, notes
+month,hmi_as_published,share_cut_prices_pct,avg_price_cut_pct,share_using_incentives_pct,release_date,source_url,accessed,notes
+2025-10-01,37,38,6,65,2025-10-16,https://eyeonhousing.org/2025/10/amid-market-challenges-builder-expectations-rise-in-october/,2026-11-09,year-ago comparison
+2025-11-01,,,,,,,,TO FILL
+2025-12-01,,40,5,,,https://eyeonhousing.org/2026/01/builder-sentiment-loses-ground-at-start-of-2026/,2026-11-09,Dec values stated in Jan-2026 release; HMI and incentives TO FILL from Dec release
+2026-01-01,37,40,6,65,2026-01-16,https://eyeonhousing.org/2026/01/builder-sentiment-loses-ground-at-start-of-2026/,2026-11-09,
+2026-02-01,36,36,6,65,2026-02-17,https://eyeonhousing.org/2026/02/builder-sentiment-edges-lower-on-affordability-concerns/,2026-11-09,HMI later revised up 1pt (Mar release)
+2026-03-01,38,37,6,64,2026-03-16,https://eyeonhousing.org/2026/03/builder-sentiment-inches-higher-but-affordability-concerns-persist/,2026-11-09,
+2026-04-01,34,36,5,60,2026-04-15,https://eyeonhousing.org/2026/04/builder-sentiment-posts-notable-decline-on-economic-uncertainty/,2026-11-09,
+2026-05-01,37,32,6,61,2026-05-18,https://eyeonhousing.org/2026/05/builder-sentiment-posts-gain-in-may-but-significant-affordability-challenges-persist/,2026-11-09,
+2026-06-01,35,35,6,62,2026-06-15,https://eyeonhousing.org/2026/06/builder-sentiment-remains-weak-amid-affordability-concerns/,2026-11-09,HMI later revised up to 36 (Jul release)
+2026-07-01,34,37,6,63,2026-07-16,https://eyeonhousing.org/2026/07/builder-sentiment-stays-weak-as-affordability-concerns-persist/,2026-11-09,
+2026-08-01,35,35,6,63,2026-08-17,https://eyeonhousing.org/2026/08/affordability-pressures-keep-builder-confidence-low/,2026-11-09,
+2026-09-01,32,38,6,66,2026-09-16,https://eyeonhousing.org/2026/09/builder-sentiment-falls-on-higher-interest-rates-and-costs/,2026-11-09,
+2026-10-01,29,43,6,65,2026-10-19,https://eyeonhousing.org/2026/10/builder-sentiment-falls-to-14-year-low-on-rising-affordability-concerns/,2026-11-09,lowest HMI since Jun-2012; price-cut share highest of 2020-2026

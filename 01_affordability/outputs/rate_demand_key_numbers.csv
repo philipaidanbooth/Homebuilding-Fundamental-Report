@@ -1,0 +1,9 @@
+metric,value,source,obs_date
+spread_full_pp,2.34,MORTGAGE30US − DGS10,2026-11-05
+dgs10_sigma_daily,0.04595005920153053,DGS10 2026 YTD daily changes,2026-11-05
+near_miss_2025_sales_chg,-0.05255402750491156,"HSN1F 3-mo avg, 2025-01 to 2026-02",2026-02
+near_miss_2025_sales_chg_plus6,-0.014243614931237714,"HSN1F 3-mo avg, 2025-01 to 2026-08",2026-08
+hsn1f_latest,676.0,HSN1F,2026-09
+hsn1f_3mo_latest,667.6666666666666,HSN1F 3-mo avg,2026-09
+unrate_latest,4.1,UNRATE,2026-10
+spread_norm_2010_19,1.6859519877867701,"MORTGAGE30US − DGS10, monthly means",2010-01..2019-12

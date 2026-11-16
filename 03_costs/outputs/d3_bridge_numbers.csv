@@ -1,0 +1,21 @@
+name,value,asof,basis
+cost_per_home_yoy_median_pct,1.3,latest quarter,Calc: median of 7 builders; implied cost per home = ASP x (1 - gross margin)
+cost_per_home_yoy_min_pct,-1.9,latest quarter,Calc
+cost_per_home_yoy_max_pct,4.7,latest quarter,Calc
+asp_yoy_median_pct,-0.6,latest quarter,Calc: median of 7 builders
+n_builders,7.0,latest quarter,Count
+n_builders_cost_per_home_up,5.0,latest quarter,Count: implied cost per home y/y above zero
+n_builders_cost_per_home_below_ppi,7.0,latest quarter,Count: implied cost per home y/y below goods-input PPI y/y
+goods_input_ppi_yoy_pct,8.7,2026-09-01,Calc from WPUIP2311101: latest month vs same month a year earlier
+goods_input_ppi_3m_yoy_pct,7.3,2026-09-01,Calc from WPUIP2311101: 3-month average vs same 3 months a year earlier
+steel_ppi_yoy_pct,27.6,2026-09-01,"Calc from WPU1017, single month"
+steel_ppi_3m_yoy_pct,24.4,2026-09-01,"Calc from WPU1017, 3-month average"
+lumber_ppi_yoy_pct,14.2,2026-09-01,"Calc from WPU0811, single month"
+lumber_ppi_3m_yoy_pct,13.6,2026-09-01,"Calc from WPU0811, 3-month average"
+lumber_vs_2020_22_peak_pct,-50.4,2026-09-01,Calc from WPU0811: latest index vs peak month of 2020-22 (May 2021)
+diesel_ppi_yoy_pct,115.2,2026-09-01,"Calc from WPU057303, single month; general fuel index, not in section body"
+diesel_ppi_3m_yoy_pct,79.5,2026-09-01,"Calc from WPU057303, 3-month average; not in section body"
+lennar_construction_cost_per_sqft_yoy_pct,-6.0,Q3 FY26,"Lennar 10-Q MD&A Outlook: 'approximately $80, down 6% from a year ago'"
+lennar_construction_cost_per_sqft_usd,80.0,Q3 FY26,Lennar 10-Q MD&A Outlook (approximate)
+lennar_cycle_time_days,116.0,Q3 FY26,Lennar 10-Q MD&A Outlook; 126 days a year ago
+lennar_cycle_time_days_year_ago,126.0,Q3 FY25,Lennar 10-Q MD&A Outlook

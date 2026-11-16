@@ -1,0 +1,13 @@
+metric,q3_fy24,q3_fy25,q3_fy26,unit,basis,source
+average_sales_price_delivered,422000,383000,372000,$,Observed,"LEN 10-Q Q3 FY25 and Q3 FY26, MD&A Homebuilding"
+gross_margin_home_sales_pct,22.5,17.5,15.8,%,Observed,"LEN 10-Q Q3 FY25 and Q3 FY26, MD&A Homebuilding"
+implied_cost_of_sales_per_home,327050,315975,313224,$,"Calc: ASP x (1 - gross margin); includes land, construction, interest and other",calc
+asp_yoy_pct,,-9.2,-2.9,%,Calc,calc
+implied_cost_yoy_pct,,-3.4,-0.9,%,Calc,calc
+total_homesites,,523079,487961,count,Observed,"LEN 10-Q Q3 FY26, MD&A land/homesites table (Aug 31, 2025 and 2026)"
+owned_homesites,,11315,11808,count,Observed,"LEN 10-Q Q3 FY26, MD&A land/homesites table"
+controlled_homesites,,511764,476153,count,Observed,"LEN 10-Q Q3 FY26, MD&A land/homesites table"
+owned_share_pct,,2.2,2.4,%,Calc,calc
+construction_cost_per_sqft_usd,,,80,$ (approx),Observed,"LEN 10-Q Q3 FY26, MD&A overview; down 6% y/y"
+cycle_time_days,,126 (year ago),116,days,Observed,"LEN 10-Q Q3 FY26, MD&A overview; 121 in Q2 FY26"
+homes_from_land_banking_pct,,,86,%,Observed,"LEN 10-Q Q3 FY26, MD&A overview"

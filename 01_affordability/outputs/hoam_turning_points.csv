@@ -1,0 +1,12 @@
+date,type,value_3mma,series
+2018-09-01,peak,0.3282631101336233,"ours (new homes, Census income)"
+2019-08-01,trough,0.2675106869480845,"ours (new homes, Census income)"
+2020-01-01,peak,0.27890160237388906,"ours (new homes, Census income)"
+2022-10-01,peak,0.4171975242648494,Atlanta Fed HOAM
+2022-11-01,peak,0.44652088810204943,"ours (new homes, Census income)"
+2023-05-01,trough,0.38767119088777663,"ours (new homes, Census income)"
+2023-09-01,peak,0.44644697162431807,Atlanta Fed HOAM
+2023-10-01,peak,0.42434245819230193,"ours (new homes, Census income)"
+2024-01-01,trough,0.4149460884575033,Atlanta Fed HOAM
+2024-06-01,peak,0.44829162209574697,Atlanta Fed HOAM
+2025-06-01,peak,0.4374888501168956,Atlanta Fed HOAM

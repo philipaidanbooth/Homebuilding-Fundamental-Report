@@ -1,0 +1,4 @@
+scenario,key,rate_band,weight_bins,inventory_direction,margin_low_bps,margin_high_bps,permit_path_rule
+Upside,upside,Below 6.25%,<6.25,Declines faster,0,0,Stronger demand pushes permits toward early-2024 levels
+Base,base,6.25% to 8.00%,6.25-6.75|6.75-7.50|7.50-8.00,Declines slowly; remains above 2018-19,50,150,Permits decline through year-end before gradually recovering over the following months
+Downside,downside,Above 8.00%,>8.00,Remains elevated or rises,150,300,Weaker demand pushes permits toward their 2022-23 lows

@@ -1,0 +1,25 @@
+
+Latest month with an observed price: 2026-09
+  Mortgage rate (month avg): 6.86%   latest week 2026-11-05: 7.18%
+  Median new price:          $400,400
+  P&I / P&I+tax+ins:         $2,102 / $2,569
+  Total / income  (HH 2025): 35.2%   nowcast: 33.9%   wage proxy: 39.1%
+  6.00% vs 7.18% P&I on $400,400: $1,920 vs $2,170 (+$249, +13.0%)
+
+HOAM cross-check: {'overlap': '2018-01 to 2026-08', 'n_months': 104, 'corr_levels': np.float64(0.871), 'corr_12m_change': np.float64(0.903), 'sign_agree_12m': np.float64(0.793), 'sign_agree_1m': np.float64(0.583)}
+
+Sensitivity table (scenario):
+  rate_pct  pi_payment  change_vs_6pct  pct_change_vs_6pct  price_supported_at_6pct_payment  purchasing_power_vs_6pct
+     5.50      1819.0          -102.0             -0.0530                         422798.0                    0.0559
+     6.00      1920.0             0.0              0.0000                         400400.0                    0.0000
+     6.50      2025.0           104.0              0.0542                         379801.0                   -0.0514
+     7.00      2131.0           211.0              0.1097                         360828.0                   -0.0988
+     7.18      2170.0           249.0              0.1299                         354366.0                   -0.1150
+     7.50      2240.0           319.0              0.1662                         343328.0                   -0.1425
+     8.00      2350.0           430.0              0.2239                         327162.0                   -0.1829
+
+FLAGS:
+  - NAHB HMI 2026-02: release text 36, Table 2 (2026-10) 37 (revision)
+  - NAHB HMI 2026-06: release text 35, Table 2 (2026-10) 36 (revision)
+
+Outputs written to /Users/philipbooth/Downloads/homebuilding_case_study/01_affordability/outputs

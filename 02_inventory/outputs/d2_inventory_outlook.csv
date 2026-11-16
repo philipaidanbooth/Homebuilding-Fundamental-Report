@@ -1,0 +1,5 @@
+case,beginning_k,completions_in_k,completed_sold_k,ending_k,ending_vs_2018_19_avg_pct,kind
+Last 12 months (actual),122,375,386,111,54.1667,Observed and implied
+Base: last year's pace repeats,111,375,386,100,38.8889,Scenario
+Base: completions scaled to the smaller pipeline,111,357.824,386,82.8244,15.0339,Scenario
+Stress: finished-home sales fall as much as total sales did,111,375,365.457,120.543,67.4214,Scenario

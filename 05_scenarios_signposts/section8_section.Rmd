@@ -1,0 +1,182 @@
+---
+title: "Industry Implications, Alternative Scenarios and Signposts"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering}
+  \captionsetup[figure]{font={footnotesize,it}}
+  \usepackage{float}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \setlength{\headsep}{8pt}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{9pt}{3pt}
+  \setlength{\intextsep}{4pt}
+  \renewcommand{\maketitle}{}
+---
+
+<!--
+Section 8: industry implications, alternative scenarios and signposts.
+Every number in the tables and the inline figures is read from the driver folders:
+  ../01_affordability/outputs/pi_scenario_bins.csv, key_numbers.csv, rate_drop_scenario.csv
+  ../02_inventory/outputs/d2_key_numbers.csv, d2_inventory_outlook.csv
+  ../03_costs/outputs/d3_bridge_numbers.csv
+  ../04_margins/data/d4_scenario_assumptions.csv, d4_sensitivity_cases.csv, outputs/d4_scenario_paths.csv, outputs/d4_history.csv
+  ../data_ready/builders_latest_quarter.csv
+Knit from this folder. Packages: knitr, kableExtra.
+-->
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({library(knitr); library(kableExtra)})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+source("../06_appendix_sources/cite.R")
+rc <- function(path) read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, fileEncoding = "UTF-8-BOM")
+num <- function(x) suppressWarnings(as.numeric(x))
+
+# Driver 1: rate range (12 months) and affordability
+bins <- rc("../01_affordability/outputs/pi_scenario_bins.csv"); b52 <- bins[bins$horizon_weeks == 52, ]
+# three scenarios: upside below 6.25%, base 6.25-8.00%, downside above 8.00%
+w_lt625 <- 100 * b52[["<6.25"]]; w_up <- w_lt625; w_core <- 100 * b52[["6.75-7.50"]]; w_hi <- 100 * b52[["7.50-8.00"]]
+w_base <- 100 * (b52[["6.25-6.75"]] + b52[["6.75-7.50"]] + b52[["7.50-8.00"]])
+w_gt800 <- 100 * b52[[">8.00"]]; w_dn <- w_gt800
+k1 <- rc("../01_affordability/outputs/key_numbers.csv"); k1v <- function(n) num(k1$value[k1$metric == n])
+pay_now <- 100 * k1v("current_total_to_income"); pay_1819 <- 100 * k1v("total_to_income_2018_19_avg")
+rd <- rc("../01_affordability/outputs/rate_drop_scenario.csv")
+rate_now <- rd$rate_pct[1]; buy_now <- 100 * rd$buydown_cost_to_6pct_pct_price[1]; buy_low <- 100 * rd$buydown_cost_to_6pct_pct_price[2]; rate_low <- rd$rate_pct[2]
+
+# Driver 2: finished inventory and incentives
+k2 <- rc("../02_inventory/outputs/d2_key_numbers.csv"); k2v <- function(n) num(k2$value[k2$name == n])
+ol <- rc("../02_inventory/outputs/d2_inventory_outlook.csv")
+o_rep <- ol[grepl("pace repeats", ol$case), ]; o_str <- ol[grepl("^Stress", ol$case), ]
+comp <- k2v("completed_for_sale_k"); comp_hi <- k2v("completed_peak_since_2022_k")
+inc_share <- k2v("nahb_share_using_incentives_pct"); cut_share <- k2v("nahb_share_cutting_prices_pct")
+
+# Driver 3: costs
+k3 <- rc("../03_costs/outputs/d3_bridge_numbers.csv"); k3v <- function(n) num(k3$value[k3$name == n])
+cost_yoy <- k3v("cost_per_home_yoy_median_pct"); ppi_yoy <- k3v("goods_input_ppi_yoy_pct")
+
+# Driver 4: margins, scenarios and starts
+mb <- rc("../data_ready/builders_latest_quarter.csv")
+gm_now <- sum(mb$rev_musd * mb$gm) / sum(mb$rev_musd)                       # revenue-weighted gross margin, %
+gm_med_chg <- median(mb$gm_change_bps)
+sc <- rc("../04_margins/data/d4_sensitivity_cases.csv"); sb <- sc[sc$case == "Base", ]
+base_bps <- ((1 - (1 - gm_now / 100) * (1 + sb$cost_change_pct / 100) / (1 + sb$price_change_pct / 100)) * 100 - gm_now) * 100
+sa <- rc("../04_margins/data/d4_scenario_assumptions.csv"); av <- function(s, col) sa[[col]][sa$scenario == s]
+sp <- rc("../04_margins/outputs/d4_scenario_paths.csv"); st_avg <- function(s) mean(sp$starts_3m_k[sp$scenario == s])
+hs <- rc("../04_margins/outputs/d4_history.csv"); s3 <- num(hs$starts_3m); s3 <- s3[!is.na(s3)]
+st_last12 <- mean(tail(s3, 12)); st_now <- tail(s3, 1)
+
+p0 <- function(x) sprintf("%.0f%%", x)
+k0 <- function(x) sprintf("%.0fK", x)
+mrange <- function(s) if (av(s, "margin_high_bps") == 0) "Could stabilize with substantial rate relief" else sprintf("%d-%d bps lower", av(s, "margin_low_bps"), av(s, "margin_high_bps"))
+
+# bordered grid, navy header, bold first column (same look as the driver sections)
+# column_spec with cell text centred vertically (needs kableExtra 1.2+; falls back to top-aligned on older versions)
+col_spec <- function(...) if ("latex_valign" %in% names(formals(kableExtra::column_spec))) kableExtra::column_spec(..., latex_valign = "m") else kableExtra::column_spec(...)
+styled <- function(df, align, widths, font_size = 8.5, bold_rows = NULL) {
+  k <- kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  n <- length(widths)
+  for (i in seq_len(n)) k <- col_spec(k, i, width = paste0(widths[i], "cm"), bold = i == 1, border_left = i == 1, border_right = i == n)
+  if (!is.null(bold_rows)) k <- row_spec(k, bold_rows, background = "#e8eef6")
+  k
+}
+exh <- function(txt) cat(sprintf("\n\\begin{center}{\\small\\itshape %s}\\end{center}\\vspace{3pt}\n", txt))
+```
+
+```{=latex}
+\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}\renewcommand{\arraystretch}{1.25}
+{\footnotesize\bfseries\color{teal}IMPLICATIONS | SCENARIOS AND SIGNPOSTS}
+
+{\fontsize{20}{24}\selectfont\bfseries\color{navy} Industry implications, alternative scenarios and signposts}
+
+\vspace{4pt}
+```
+
+## What the base case adds up to
+
+Over the next 12 months, U.S. homebuilding is more likely to stagnate than collapse. Builders are accepting lower gross margins to maintain sales, while gradually reducing finished inventory. In the base case, gross margins are `r av("Base", "margin_low_bps")`-`r av("Base", "margin_high_bps")` bps below the prior year (~`r sprintf("%.0f", abs(base_bps))` bps if the past year repeats), and single-family starts stay roughly flat to slightly lower.
+
+```{r basetab, results="asis"}
+exh("Exhibit 8.1. The base case in numbers, by driver.")
+df <- data.frame(
+  Measure = c("30-year mortgage rate", "Affordability", "Incentives", "Finished unsold homes", "Cost per home", "Gross margin", "Single-family starts"),
+  `Base case, next 12 months` = c(
+    sprintf("6.25-8.00%% (~%s); 6.75-7.50%% is the single most likely band", p0(w_base)),
+    sprintf("Payment stays near %s of income, against %s in 2018-19", p0(pay_now), p0(pay_1819)),
+    sprintf("Stay widespread: %s of builders use them now", p0(inc_share)),
+    sprintf("Decline slowly, from %s to ~%s, still %s above 2018-19", k0(comp), k0(o_rep$ending_k), p0(o_rep$ending_vs_2018_19_avg_pct)),
+    sprintf("Flat to up modestly: %+.1f%% now, with input prices up %.1f%%", cost_yoy, ppi_yoy),
+    sprintf("%d-%d bps below the prior year; ~%.0f bps if the past year repeats", av("Base", "margin_low_bps"), av("Base", "margin_high_bps"), abs(base_bps)),
+    sprintf("Average ~%s, against %s over the past 12 months and %s now", k0(st_avg("base")), k0(st_last12), k0(st_now))),
+  From = c("Driver 1", "Driver 1", "Driver 2", "Driver 2", "Driver 3", "Driver 4", "Driver 4"),
+  check.names = FALSE, stringsAsFactors = FALSE)
+cat(styled(df, c("l", "l", "c"), c(3.6, 11.2, 1.8)))
+```
+
+## Why the upside is plausible but not the base case
+
+A substantial recovery would need a meaningful drop in mortgage rates. The rate model puts ~`r p0(w_lt625)` on rates below 6.25% in 12 months. Lower rates would also shrink the subsidy needed to get a buyer to a 6.00% payment (worth ~`r sprintf("%.1f", buy_now)`% of the home price at today's `r sprintf("%.2f", rate_now)`% rate, against ~`r sprintf("%.1f", buy_low)`% at `r sprintf("%.2f", rate_low)`%). That should lower what builders spend on buydowns and could let margins improve before home sales recover significantly.
+
+## Why the downside is less likely than an orderly slowdown
+
+A sharper downturn would likely need a combination of sustained high mortgage rates, weaker employment and household income. Under those conditions, incentives may not be enough to sustain sales, and finished inventory could rise while margins compress further. The downside remains meaningful: the model puts ~`r p0(w_dn)` on mortgage rates above 8.00% and a further `r p0(w_hi)` on 7.50-8.00%, where a weakening labor market could be enough to move the industry into the downside scenario.
+
+```{r sctab, results="asis"}
+exh("Exhibit 8.2. Three rate scenarios for the next 12 months (full detail in Exhibit 4.3, Driver 4). Probabilities are model estimates, not market-implied forecasts.")
+ord <- c("Upside", "Base", "Downside")
+df <- data.frame(
+  Scenario = ord,
+  `30-year rate in 12 months` = unname(sapply(ord, av, "rate_band")),
+  `Model probability` = paste0(p0(c(w_up, w_base, w_dn)), c("", sprintf(" (%s at 6.75-7.50%%)", p0(w_core)), "")),
+  `Starts, average` = k0(unname(sapply(tolower(ord), st_avg))),
+  `Gross margin vs prior year` = unname(sapply(ord, mrange)),
+  check.names = FALSE, stringsAsFactors = FALSE)
+cat(styled(df, c("l", "c", "c", "c", "l"), c(1.8, 2.8, 3.8, 2.0, 5.6), bold_rows = 2))
+```
+
+## Why other drivers are secondary
+
+This report focuses on mortgage rates, finished inventory, construction costs and margins because they have the most immediate effect on the 12-month outlook. Material and labor cost increases remain important downside risks, but affordability is likely to remain the main constraint. Demographic trends, regional differences, tariffs and build-to-rent activity also affect homebuilding, but are less likely to change the 12-month outlook: demographics move slowly, this report takes a national view, and the public data used here does not separate out the effects of tariffs or build-to-rent.
+
+## Most important signposts
+
+The three most important indicators are the 30-year mortgage rate, finished unsold homes and builder incentives. Together, they show whether affordability is improving, excess inventory is coming down and builders can keep selling without giving up more margin. The spring selling season (March to May) falls inside the forecast window and is the clearest test: the share of builders cutting prices is not seasonally adjusted and has run higher late in the year, so if price cuts and incentives do not ease in spring, that would suggest the weakness is more than seasonal.
+
+```{r signtab, results="asis"}
+exh("Exhibit 8.3. Signposts: today's reading and what would change the view. The three shaded rows matter most.")
+df <- data.frame(
+  Indicator = c("30-year mortgage rate", "Finished unsold homes", "Builders using incentives", "Builders cutting prices",
+                "Input prices vs builders' cost per home", "Builders' gross margin"),
+  Today = c(sprintf("%.2f%%", rate_now), k0(comp), p0(inc_share), p0(cut_share),
+            sprintf("%+.1f%% vs %+.1f%%", ppi_yoy, cost_yoy), sprintf("Down %.0f bps at the median", abs(gm_med_chg))),
+  `Points to the upside if` = c("Falls below 6.25%", sprintf("Falls faster than the base path (below ~%s)", k0(o_rep$ending_k)),
+            "Falls below 60%", "Falls back toward the mid-30s", "Input prices slow", "Builders guide margins higher"),
+  `Points to the downside if` = c("Rises above 8.00%", sprintf("Rises toward the recent high of %s", k0(comp_hi)),
+            "Rises further", "Rises further", "Cost per home rises toward input prices",
+            sprintf("Falls by more than %d bps", av("Base", "margin_high_bps"))),
+  Source = c("Freddie Mac, weekly", "Census, monthly", "NAHB, monthly", "NAHB, monthly", "BLS; builder filings", "Earnings releases"),
+  check.names = FALSE, stringsAsFactors = FALSE)
+cat(styled(df, c("l", "l", "l", "l", "l"), c(3.6, 2.9, 3.7, 3.7, 2.7), bold_rows = 1:3))
+```
+
+```{=latex}
+\vspace{4pt}
+{\footnotesize\itshape Sources: Freddie Mac PMMS `r cite("freddie_pmms")`; Census and HUD `r cite("census_nrs", "census_nrc")`; BLS `r cite("bls_ppi")`; NAHB / Wells Fargo HMI `r cite("nahb_hmi")`; builder earnings releases and filings `r cite("dhi_8k")`-`r cite("tol_release")`. Calculations are this report's, from Drivers 1-4; methods are in Data \& Methodology.\par}
+```

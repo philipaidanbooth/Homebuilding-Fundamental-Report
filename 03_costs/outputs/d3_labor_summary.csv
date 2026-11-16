@@ -1,0 +1,9 @@
+name,value,asof,basis
+constr_ahe_yoy_pct,4.7,2026-10-01,Calc from CES2000000003
+private_ahe_yoy_pct,3.1,2026-10-01,Calc from CES0500000003
+constr_employment_yoy_pct,1.5,2026-10-01,Calc from USCONS
+jolts_openings_3m_avg_k,286.3,2026-09-01,"Calc: mean of last 3 months, JTS2300JOL"
+jolts_openings_3m_avg_prev_k,241.3,2025-09-01,Calc: same 3 months a year earlier
+jolts_openings_3m_yoy_pct,18.6,2026-09-01,Calc
+jolts_openings_single_month_yoy_pct,44.7,2026-09-01,Calc; one volatile month
+foreign_born_share_constr_extraction_occ_pct,33.4,2025,Calc from BLS CPS annual 2025; occupation basis; see data_ready flags

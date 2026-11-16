@@ -1,0 +1,18 @@
+name,value,asof,basis
+goods_input_ppi_yoy_pct,8.7,2026-09-01,Observed (WPUIP2311101)
+diesel_ppi_yoy_pct,115.2,2026-09-01,Observed (WPU057303)
+steel_ppi_yoy_pct,27.6,2026-09-01,Observed (WPU1017)
+lumber_ppi_yoy_pct,14.2,2026-09-01,Observed (WPU0811)
+materials_ppi_yoy_pct,5.7,2026-09-01,Observed (WPUID612)
+broad_residential_inputs_ppi_yoy_pct,9.7,2026-09-01,Observed (WPUIP2311001)
+median_new_home_price_yoy_pct,-3.9,2026-09-01,Observed (MSPNHSUS)
+cost_per_home_yoy_median_7_builders_pct,1.3,latest quarter,"Calc: median of 7 builders, ASP x (1 - GM)"
+cost_per_home_yoy_min_pct,-1.9,latest quarter,Calc
+cost_per_home_yoy_max_pct,4.7,latest quarter,Calc
+asp_yoy_median_7_builders_pct,-0.6,latest quarter,Calc: median of 7 builders
+n_builders_cost_per_home_below_ppi,7.0,latest quarter,Calc
+margin_per_1pct_price_bps_at_22pct_gm,78.0,n/a,Calc: (1 - GM) x 1%
+owned_share_vs_gm_change_corr_5_builders,-0.24,latest quarter,"Calc: Pearson r, n = 5; descriptive only"
+lennar_construction_cost_per_sqft_yoy_pct,-6.0,Q3 FY26,Observed (10-Q MD&A); see d3_lennar_10q_extract.csv
+lennar_cycle_time_days,116.0,Q3 FY26,Observed (10-Q MD&A)
+dhi_land_balance_per_owned_lot_yoy_pct,15.8,Jun-2026,"Calc, rough proxy (flag 10)"

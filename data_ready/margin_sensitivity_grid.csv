@@ -1,0 +1,13 @@
+starting_gm_pct,shock_pct,shock_type,margin_change_bps,formula
+15.8,1.0,price,84.2,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+15.8,1.0,cost,-84.2,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+17.5,1.0,price,82.5,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+17.5,1.0,cost,-82.5,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+20.0,1.0,price,80.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+20.0,1.0,cost,-80.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+22.0,1.0,price,78.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+22.0,1.0,cost,-78.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+24.0,1.0,price,76.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+24.0,1.0,cost,-76.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+26.0,1.0,price,74.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"
+26.0,1.0,cost,-74.0,"price: dGM = (1-GM) x dP/P ; cost: dGM = -(1-GM) x dC/C ; first-order, other variable held constant"

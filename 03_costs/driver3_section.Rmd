@@ -1,0 +1,215 @@
+---
+title: "Driver 3: Build costs"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 9pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering}
+  \captionsetup[figure]{font={footnotesize,it}}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \definecolor{calloutfill}{HTML}{FFF3CD}
+  \definecolor{calloutline}{HTML}{D39B2F}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \setlength{\headsep}{8pt}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{5pt}{1pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{callout}{colback=calloutfill,colframe=calloutline,boxrule=0.6pt,arc=0pt,left=6pt,right=6pt,top=4pt,bottom=4pt}
+  \renewcommand{\maketitle}{}
+  \renewcommand{\arraystretch}{1.3}
+  \setlength{\textfloatsep}{6pt}
+---
+
+<!--
+Numbers are NOT typed here: they are read from CSVs through inline R code. Quoted filing text comes from
+outputs/d3_filing_commentary.csv; every quote and filing figure is logged in VERIFICATION_LOG.csv.
+Knit from the 03_costs folder (relative paths outputs/, ../data_ready/, ../01_affordability/outputs/, ../02_inventory/outputs/).
+Reads only; no downloading. Packages: ggplot2, dplyr, readr, tidyr, scales, knitr, kableExtra.
+Rebuild the exhibit CSVs with: python3 scripts/d3_build_exhibits.py, then python3 scripts/d3_build_bridge.py (run from this folder).
+-->
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({library(ggplot2); library(dplyr); library(readr); library(tidyr)
+  library(scales); library(knitr); library(kableExtra)})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+  out.width = "100%",
+  fig.align = "center", fig.width = 9, fig.height = 4.8, dpi = 160, dev = "png")
+NAVY <- "#1f3350"; RED <- "#b5524f"; GREY <- "#8a8f98"   # red = price (the stress); navy = cost
+theme_d1 <- function() {
+  theme_classic(base_size = 12) +
+    theme(text = element_text(colour = "#222222"),
+      panel.grid.major.x = element_line(colour = "#dddddd", linewidth = 0.4),
+      panel.grid.major.y = element_blank(),
+      axis.line = element_line(colour = "#222222", linewidth = 0.5),
+      axis.ticks = element_line(colour = "#222222", linewidth = 0.4),
+      axis.text = element_text(colour = "#555555", size = 10.5),
+      axis.text.y = element_text(colour = "#222222", size = 11.5),
+      axis.title = element_text(colour = "#111111", size = 10),
+      plot.title = element_text(face = "bold", size = 13.5, colour = NAVY, hjust = 0.5, margin = margin(b = 6)),
+      plot.title.position = "panel",
+      legend.position = "top", legend.justification = "center", legend.title = element_blank(),
+      legend.key = element_blank(), legend.text = element_text(size = 11),
+      legend.margin = margin(b = -4), strip.background = element_blank())
+}
+# bordered grid (rule on every cell), navy header, bold first column
+# column_spec with cell text centred vertically (needs kableExtra 1.2+; falls back to top-aligned on older versions)
+col_spec <- function(...) if ("latex_valign" %in% names(formals(kableExtra::column_spec))) kableExtra::column_spec(..., latex_valign = "m") else kableExtra::column_spec(...)
+styled <- function(df, align, widths, bold_first = TRUE, font_size = 8.5) {
+  k <- kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  n <- length(widths)
+  for (i in seq_len(n)) k <- col_spec(k, i, width = paste0(widths[i], "cm"), bold = bold_first && i == 1,
+                                         border_left = i == 1, border_right = i == n)
+  k
+}
+
+# ---- data (CSVs only) ---------------------------------------------------------------
+O <- "outputs"
+source("../06_appendix_sources/cite.R")   # numbered citations: cite("key")
+bn  <- read_csv(file.path(O, "d3_bridge_numbers.csv"), show_col_types = FALSE);  bv <- function(n) as.numeric(bn$value[bn$name == n])
+lb  <- read_csv(file.path(O, "d3_labor_summary.csv"), show_col_types = FALSE);   lv <- function(n) as.numeric(lb$value[lb$name == n])
+cp  <- read_csv(file.path(O, "d3_cost_vs_price_by_builder.csv"), show_col_types = FALSE)
+com <- read_csv(file.path(O, "d3_filing_commentary.csv"), show_col_types = FALSE)
+land <- read_csv(file.path(O, "d3_land_model.csv"), show_col_types = FALSE) %>% filter(!is.na(owned_share_pct))
+d2  <- read_csv("../02_inventory/outputs/d2_key_numbers.csv", show_col_types = FALSE); d2v <- function(n) as.numeric(d2$value[d2$name == n])
+bins <- read_csv("../01_affordability/outputs/pi_scenario_bins.csv", show_col_types = FALSE) %>% filter(horizon_weeks == 52)
+w_base <- 100 * (bins[["6.25-6.75"]] + bins[["6.75-7.50"]] + bins[["7.50-8.00"]])                      # model-derived scenario weight, base rate band
+sg  <- function(x) sprintf("%+.1f%%", x)
+pc0 <- function(x) sprintf("%.0f%%", x)
+q   <- function(b, col = "margin_reason_quote") com[[col]][com$builder == b]
+n_land <- sum(com$cites_land_or_lot_cost)
+own_lo <- land[which.min(land$owned_share_pct), ]; own_hi <- land[which.max(land$owned_share_pct), ]
+cph <- function(b) cp$implied_cost_yoy_pct[cp$builder == b]
+aspb <- function(b) cp$asp_yoy_pct[cp$builder == b]
+```
+
+```{=latex}
+\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}
+{\footnotesize\bfseries\color{teal}DRIVER 3 | BUILD COSTS}
+
+{\fontsize{20}{24}\selectfont\bfseries\color{navy} Build costs}
+
+\vspace{4pt}
+\begin{callout}
+```
+
+**Costs are not relieving margin compression, and the risk is that higher input prices still pass through to cost per home.** Cost per home is holding while selling prices fall, and published input prices are rising faster than the costs builders have reported so far. Cost savings are unlikely to be large enough to offset lower selling prices over the next 6-12 months.
+
+```{=latex}
+\end{callout}
+```
+
+## What builders report
+
+Across `r bv("n_builders")` large builders, implied cost per home changed by a median of `r sg(bv("cost_per_home_yoy_median_pct"))` y/y in the latest quarter (range `r sg(bv("cost_per_home_yoy_min_pct"))` to `r sg(bv("cost_per_home_yoy_max_pct"))`), against a median ASP change of `r sg(bv("asp_yoy_median_pct"))`. `r cite("dhi_8k", "len_8k", "phm_8k", "nvr_8k", "kbh_8k", "mth_release", "tol_release")` `r n_land` of the `r bv("n_builders")` name higher land or lot costs when explaining lower margins. `r cite("dhi_10q", "len_10q", "phm_10q", "nvr_8k", "kbh_8k", "mth_release", "tol_release")` Lennar reports construction costs per square foot down `r sprintf("%.0f", abs(bv("lennar_construction_cost_per_sqft_yoy_pct")))`% from a year ago and build times down to `r bv("lennar_cycle_time_days")` days from `r bv("lennar_cycle_time_days_year_ago")`. `r cite("len_10q")` PulteGroup's 10-Q states the timing problem: "there is a lag between when such cost changes occur and when they impact our operating results." `r cite("phm_10q")`
+
+```{r inputppi, fig.cap="Exhibit 3.1. Producer prices for goods inputs to single-family construction, change from a year earlier, with builders' implied cost per home (median of seven builders, latest quarter) for comparison."}
+ppi_raw <- read_csv("data/raw/WPUIP2311101_2026-11-10.csv", show_col_types = FALSE)
+ppi_yoy <- ppi_raw %>% arrange(observation_date) %>%
+  mutate(yoy = 100 * (WPUIP2311101 / lag(WPUIP2311101, 12) - 1)) %>%
+  filter(!is.na(yoy), observation_date >= as.Date("2018-01-01"))
+last_pt <- ppi_yoy %>% slice_tail(n = 1)
+if (abs(round(last_pt$yoy, 1) - bv("goods_input_ppi_yoy_pct")) > 0.05)
+  stop(sprintf("Computed latest y/y (%+.1f%%) does not match bridge value (%+.1f%%).",
+               last_pt$yoy, bv("goods_input_ppi_yoy_pct")))
+cost_med <- bv("cost_per_home_yoy_median_pct")
+peak_pt <- ppi_yoy %>% filter(observation_date < as.Date("2023-01-01")) %>% slice_max(yoy, n = 1)
+ggplot(ppi_yoy, aes(observation_date, yoy)) +
+  geom_hline(yintercept = 0, colour = "#555555", linewidth = 0.4) +
+  geom_line(colour = NAVY, linewidth = 1) +
+  geom_point(data = last_pt, aes(observation_date, yoy), colour = NAVY, size = 2.6) +
+  annotate("point", x = last_pt$observation_date, y = cost_med, colour = RED, size = 2.6) +
+  annotate("text", x = last_pt$observation_date + 80, y = last_pt$yoy,
+           label = sprintf("%+.1f%%, %s", last_pt$yoy, format(last_pt$observation_date, "%b %Y")),
+           hjust = 0, size = 3.2, colour = NAVY, fontface = "bold") +
+  annotate("text", x = last_pt$observation_date + 80, y = cost_med,
+           label = sprintf("Builders' cost per home,\nmedian of 7: %+.1f%%", cost_med),
+           hjust = 0, vjust = -0.15, size = 3.2, colour = RED, lineheight = 0.95) +
+  annotate("text", x = peak_pt$observation_date, y = peak_pt$yoy,
+           label = "2021 supply shock", vjust = -1, size = 3.0, colour = GREY) +
+  scale_x_date(breaks = seq(as.Date("2018-01-01"), as.Date("2026-01-01"), by = "1 year"),
+               date_labels = "%Y", expand = expansion(mult = c(0.02, 0.30))) +
+  scale_y_continuous(labels = function(x) sprintf("%+d%%", as.integer(x)),
+                     expand = expansion(mult = c(0.05, 0.12))) +
+  labs(title = "Input prices are rising again, faster than builders' costs so far",
+       x = NULL, y = "Construction input prices,\nchange from a year earlier",
+       caption = paste0("Sources: BLS Producer Price Index ", cite("bls_ppi"), "; builder earnings releases ", cite("dhi_8k", "len_8k", "phm_8k", "nvr_8k", "kbh_8k", "mth_release", "tol_release"), "; cost per home calculated here.")) +
+  theme_d1() +
+  theme(panel.grid.major.y = element_line(colour = "#dddddd", linewidth = 0.4),
+        panel.grid.major.x = element_blank(),
+        axis.title.y = element_text(size = 10), axis.text = element_text(size = 9),
+        plot.title = element_text(face = "bold", size = 12.5, colour = NAVY, hjust = 0.5, margin = margin(b = 8)))
+```
+
+```{=latex}
+\vspace{-10pt}
+```
+
+**Input prices and cost per home are moving apart.** Goods inputs to single-family construction are up `r sg(bv("goods_input_ppi_yoy_pct"))` y/y, yet cost per home is below that rate at all `r bv("n_builders_cost_per_home_below_ppi")` builders. `r cite("bls_ppi")` The two numbers are not directly comparable: cost per home is calculated from each builder's reported prices and margins. The gap is a risk to costs over the next 6-12 months, but how much passes through, and when, is uncertain.
+
+```{=latex}
+\vspace{4pt}
+\begin{minipage}{\textwidth}
+{\centering\small\itshape Exhibit 3.2. Cost bridge: evidence and expected direction by component.\par}
+\vspace{3pt}
+```
+
+```{r bridge}
+tb <- tibble::tribble(
+  ~Component, ~Evidence, ~`Outlook, 6-12 months`, ~`Margin relevance`,
+  "Land and lots",
+    sprintf("%d of %d builders cite higher land or lot costs (%s). Owned share of lots: %s (%s) to %s (%s). Land cost per home: not available from public data.",
+            n_land, bv("n_builders"), paste(com$builder[com$cites_land_or_lot_cost], collapse = ", "),
+            pc0(own_lo$owned_share_pct), own_lo$builder, pc0(own_hi$owned_share_pct), own_hi$builder),
+    "Sticky to up modestly", "High, long lag",
+  "Vertical construction",
+    sprintf("Implied cost per home %s y/y (median of %d) against goods-input PPI %s (steel %s). Lennar: construction cost per square foot down %.0f%%. Meritage cites %s. D.R. Horton (June quarter): average cost of homes closed increased.",
+            sg(bv("cost_per_home_yoy_median_pct")), bv("n_builders"), sg(bv("goods_input_ppi_yoy_pct")), sg(bv("steel_ppi_yoy_pct")), abs(bv("lennar_construction_cost_per_sqft_yoy_pct")),
+            q("Meritage Homes", "cost_offset_quote")),
+    "Flat to up modestly", "High",
+  "Labor and subcontractors",
+    sprintf("Construction hourly earnings %s y/y vs %s all private; job openings %s (3-month avg). %.0f%% of construction-occupation workers were foreign-born in 2025. Builder labor cost: not available from public data.",
+            sg(lv("constr_ahe_yoy_pct")), sg(lv("private_ahe_yoy_pct")), sg(lv("jolts_openings_3m_yoy_pct")), lv("foreign_born_share_constr_extraction_occ_pct")),
+    "Up modestly", "Medium-high",
+  "Lumber",
+    sprintf("Softwood lumber PPI %s y/y, still %.0f%% below its 2020-22 peak. Builder lumber cost: not available from public data.",
+            sg(bv("lumber_ppi_yoy_pct")), abs(bv("lumber_vs_2020_22_peak_pct"))),
+    "Volatile, below 2020-22 highs", "Lower than in 2020-22",
+  "Financing and carrying cost",
+    sprintf("Base scenario: mortgage rate 6.25-8.00%% (model-derived scenario weight about %.0f%%). %.0f thousand completed new homes for sale, %.0f%% above 2018-19 (Driver 2). Interest cost per home: not available from public data.",
+            w_base, d2v("completed_for_sale_k"), d2v("completed_pct_above_2018_19_avg")),
+    "Elevated", "Rises with inventory age")
+styled(tb, "llll", c(2.4, 9.2, 2.6, 2.1))
+```
+
+{\footnotesize\itshape Sources: builder filings `r cite("dhi_8k", "dhi_10q", "len_8k", "len_10q", "phm_8k", "phm_10q", "nvr_8k", "kbh_8k", "mth_release", "tol_release")`; BLS `r cite("bls_earnings", "bls_ppi", "bls_jolts", "bls_foreign_born")`; Census `r cite("census_nrs")`; scenario weight from Driver 1.}
+
+```{=latex}
+\end{minipage}
+\vspace{4pt}
+```
+
+**Verdict:** costs are not relieving margin compression. Implied cost per home is up a median `r sprintf("%.1f%%", bv("cost_per_home_yoy_median_pct"))` while the median selling price is down `r sprintf("%.1f%%", abs(bv("asp_yoy_median_pct")))`, and `r n_land` of `r bv("n_builders")` builders cite higher land or lot costs. Driver 4 measures the effect on margins.
+
+**What would change this view:**
+
+- **Construction costs rise faster than expected** (more pressure): higher input prices pass through to cost per home, adding to margin pressure.
+- **Labor costs rise** (more pressure): construction pay is already rising faster than pay across the private sector. `r cite("bls_earnings")`
+- **Construction efficiencies spread across more builders** (the other direction): lower cost per home would offset part of the price cuts.

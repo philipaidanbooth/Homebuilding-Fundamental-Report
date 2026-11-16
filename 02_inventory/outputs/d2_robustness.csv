@@ -1,0 +1,7 @@
+model,n,slope,nw_se,t,p,r2,rate_coef,rate_p,nw_lag,note
+(b) % cutting ~ completed months' supply (baseline),49,9.068520444,2.061009814,4.400037489,6.181760452e-05,0.4245978434,,,3,same month; reproduces model (b)
+"(f1) % cutting ~ completed months' supply, 1 month earlier",50,8.866073225,2.03402951,4.358871482,6.870487478e-05,0.4152897243,,,3,supply lagged by calendar month; Oct-2026 survey month enters because lagged supply exists
+"(f2) % cutting ~ completed months' supply, 2 months earlier",50,8.816900549,2.027083543,4.349549666,7.082939704e-05,0.4337878308,,,3,supply lagged by calendar month; Oct-2026 survey month enters because lagged supply exists
+"(f3) % cutting ~ completed months' supply, 3 months earlier",50,8.058268844,2.045225217,3.940039844,0.0002633984068,0.399920653,,,3,supply lagged by calendar month; Oct-2026 survey month enters because lagged supply exists
+(g) % cutting ~ completed months' supply + 30-year mortgage rate,49,9.049143263,1.943250796,4.656703747,2.754203168e-05,0.433641684,1.327573621,0.5828899379,3,rate = monthly average of weekly Freddie Mac PMMS; slope shown is on completed months' supply
+(h) % cutting ~ 30-year mortgage rate only,50,2.261764439,4.204965896,0.5378793775,0.5931456513,0.02592230545,2.261764439,0.5931456513,3,slope shown is on the mortgage rate

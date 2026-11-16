@@ -1,0 +1,4 @@
+case,price_change_pct,cost_change_pct
+Low pressure,0,0
+Base,-1.0,0.5
+High pressure,-2.0,1.5

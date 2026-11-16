@@ -1,0 +1,30 @@
+name,value,unit,kind,asof,note
+new_homes_for_sale_total_k,476.0,thousand,Observed,2026-09-01,"HNFSEPUSSA, SA"
+completed_for_sale_k,111.0,thousand,Observed,2026-09-01,"NHFSEPCS, SA"
+completed_2018_19_avg_k,72.0,thousand,Calc,2018-01 to 2019-12,mean of 24 monthly values
+completed_pct_above_2018_19_avg,54.1667,%,Calc,2026-09-01,completed / 2018-19 avg - 1
+completed_change_vs_year_ago_k,-11.0,thousand,Calc,2025-09-01 to 2026-09-01,
+completed_peak_since_1999_k,194.0,thousand,Observed,2007-09-01,peak month in asof
+completed_pct_below_peak_since_1999,-42.7835,%,Calc,2026-09-01,vs 2007-09-01 peak; negative = below
+completed_peak_since_2022_k,128.0,thousand,Observed,2026-01-01,peak month in asof; max of 2022-01 onward
+months_supply,8.4,months,Observed,2026-09-01,MSACSR
+months_supply_2018_19_avg,5.9917,months,Calc,2018-01 to 2019-12,
+completed_months_supply,1.9704,months,Calc,2026-09-01,NHFSEPCS / (HSN1F/12)
+new_home_sales_saar_k,676.0,thousand,Observed,2026-09-01,"HSN1F, SAAR"
+new_home_sales_yoy_pct,-5.3221,%,Calc,2026-09-01,vs 2025-09-01 (714.0k); HSN1F is revised by Census
+nahb_share_cutting_prices_pct,43.0,%,Observed,2026-10-01,NAHB HMI special question; origin: Driver 1 manual file
+nahb_share_using_incentives_pct,65.0,%,Observed,2026-10-01,NAHB HMI special question
+fitted_share_cutting_at_current_inventory_pct,33.5047,%,Calc,2026-09-01,model (b) b0 15.64 + b1 9.07 x completed months' supply 1.97; baseline is Sep-2026 Census month
+nahb_oct_gap_vs_fitted_pts,9.495,pts,Calc,2026-10-01,"NAHB share (Oct) minus fitted at Sep Census inventory; timing mismatch, see d2_cuts_vs_completed note"
+existing_active_listings,1183520.0,count,Observed,2026-10-01,"Realtor.com, NSA"
+existing_active_listings_same_month_2019,1208363.0,count,Observed,2019-10-01,"NSA, same calendar month"
+existing_active_listings_pct_vs_2019,-2.0559,%,Calc,2026-10-01,vs same month 2019
+existing_active_listings_yoy_pct,7.4369,%,Calc,2026-10-01,vs 2025-10-01
+pct_mortgages_below_5_latest,65.6,%,Observed,2026-06-01,"FHFA NMDB, quarter end; lags other series"
+pct_mortgages_below_5_peak,85.5,%,Observed,2022-03-01,peak month in asof (series starts 2013-03-01)
+pct_mortgages_below_5_change_from_peak_pts,-19.9,pts,Calc,2022-03-01 to 2026-06-01,
+permits_1f_k,846.0,thousand,Observed,2026-09-01,"PERMIT1, SAAR"
+permits_1f_yoy_pct,-4.7297,%,Calc,2026-09-01,
+starts_1f_k,859.0,thousand,Observed,2026-09-01,"HOUST1F, SAAR"
+starts_1f_yoy_pct,2.6284,%,Calc,2026-09-01,
+permits_minus_starts_1f_k,-13.0,thousand,Calc,2026-09-01,SAAR difference; permits and starts both SAAR

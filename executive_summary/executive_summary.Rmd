@@ -1,0 +1,121 @@
+---
+title: "Executive Summary"
+output:
+  pdf_document:
+    latex_engine: xelatex
+geometry: "left=0.6in,right=0.6in,top=0.6in,bottom=0.45in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{xcolor}
+  \usepackage{colortbl}
+  \usepackage{array}
+  \usepackage{tabularx}
+  \usepackage{enumitem}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \definecolor{good}{HTML}{4B7F52}
+  \definecolor{bad}{HTML}{B5524F}
+  \definecolor{boxfill}{HTML}{E9EEF4}
+  \definecolor{stripfill}{HTML}{F6F7F9}
+  \definecolor{rule}{HTML}{C9CFD8}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \setlength{\headsep}{8pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{thesisbox}{colback=boxfill,colframe=navy,boxrule=0.8pt,arc=0pt,left=7pt,right=7pt,top=5pt,bottom=5pt}
+  \newcommand{\hd}[1]{\textcolor{white}{\bfseries #1}}
+  \newcommand{\bigv}[2]{{\fontsize{17}{20}\selectfont\bfseries\textcolor{#1}{#2}}}
+  \newcommand{\seclabel}[1]{{\small\bfseries\color{teal}#1}\par\vspace{3pt}}
+  \renewcommand{\maketitle}{}
+  \setlength{\parindent}{0pt}
+---
+
+<!--
+Executive summary. Every figure here is typed in from the driver sections (Drivers 1-4, Section 8),
+so if a driver changes, update the matching number here. No R code: knit as usual.
+Colour rule for the headline numbers: red = pressure on builders, green = holding up.
+-->
+
+```{=latex}
+{\footnotesize\bfseries\color{teal}U.S. HOMEBUILDING INDUSTRY OUTLOOK | NEXT 6-12 MONTHS}\par
+\vspace{3pt}
+{\fontsize{21}{24}\selectfont\bfseries\color{navy}Executive Summary}\par
+\vspace{5pt}
+
+\begin{thesisbox}
+{\large\bfseries\color{navy}Thesis}\par\vspace{3pt}
+Over the next 6-12 months, U.S. homebuilding is more likely to stagnate than collapse. Affordability remains the binding constraint, reducing buyer demand. Builders keep trading margin for volume. Gross margins will likely stay 50-150 bps below last year, and finished inventory will decline slowly. The main risk is mortgage rates above 8\% or a weaker labor market.
+\end{thesisbox}
+\vspace{3pt}
+
+{\small
+\renewcommand{\arraystretch}{1.45}
+\begin{tabularx}{\textwidth}{@{}*{6}{>{\centering\arraybackslash}X}@{}}
+\rowcolor{navy} \hd{Mortgage rate} & \hd{New-home sales} & \hd{Months' supply} & \hd{Finished unsold} & \hd{Gross margin y/y} & \hd{NAHB HMI} \\
+\rowcolor{stripfill} \rule{0pt}{18pt}\bigv{bad}{7.18\%} & \bigv{good}{676K} & \bigv{bad}{8.4} & \bigv{bad}{111K} & \bigv{bad}{-130 bps} & \bigv{bad}{29} \\[3pt]
+\end{tabularx}
+}
+\par\vspace{2pt}
+{\footnotesize\itshape\color{gray}Latest data: September 2026 housing activity; Freddie Mac rate as of Nov. 5; HMI for October. [1][3][16] \ Red = under pressure; green = holding up.}\par
+\vspace{4pt}
+
+{\small At today's rates, the monthly payment on the median new home takes $\sim$37\% of median household income, compared with 30\% in 2018-19, before the COVID-19 pandemic. Mortgage rates are unlikely to fall enough to bring buyers back in large numbers, so builders rely on price cuts and incentives to keep sales moving. These measures reduce revenue per home, while sticky land costs limit how much builders can save. All seven builders analyzed reported year-over-year gross margin declines, averaging 130 basis points on a revenue-weighted basis. Gross margins are likely to compress another 50-150 basis points over the next 12 months, from 19.6\% today to approximately 18-19\%. Builders are earning less on each home sold, but maintaining sales and gradually reducing inventory, supporting an outlook of stagnation rather than collapse.}\par
+\vspace{5pt}
+
+{\small
+\renewcommand{\arraystretch}{1.7}
+\renewcommand{\tabularxcolumn}[1]{m{#1}}
+\arrayrulecolor{rule}
+\begin{tabularx}{\textwidth}{|>{\bfseries\raggedright\arraybackslash}m{5.3cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}m{5.2cm}|}
+\hline
+\rowcolor{navy} \multicolumn{1}{|c|}{\hd{Material driver}} & \multicolumn{1}{c|}{\hd{Why it matters now}} & \multicolumn{1}{c|}{\hd{Base-case implication}} \\ \hline
+Affordability is the binding constraint & Rates rose from 6.0\% in March to 7.18\%; the payment now takes 37\% of income. & Buyers stay payment-constrained, so demand does not recover on its own. \\ \hline
+\rowcolor{stripfill} Inventory forces the discounting & 111K finished unsold homes, 54\% above 2018-19; 65\% of builders use incentives. & Declines slowly, to about 100K, so discounting continues. \\ \hline
+Costs are not providing relief & Cost per home is up 1.3\% y/y while prices fall; input prices are up 8.7\% and labor is tight. & Costs do not offset lower revenue per home, and could rise further. \\ \hline
+\rowcolor{stripfill} Margins are where it all shows up & Gross margin fell at all seven large builders (20.9\% to 19.6\%), across every buyer tier. & Another 50-150 bps of compression; starts average about 884K. \\ \hline
+\end{tabularx}
+}
+\par\vspace{5pt}
+
+{\small\bfseries\color{teal}OUTLOOK RANGE}{\footnotesize\itshape\color{gray}\quad Probabilities are from this report's rate model.}\par\vspace{3pt}
+{\small
+\renewcommand{\arraystretch}{1.7}
+\renewcommand{\tabularxcolumn}[1]{m{#1}}
+\arrayrulecolor{rule}
+\begin{tabularx}{\textwidth}{|>{\bfseries}m{1.7cm}|>{\centering\arraybackslash}m{2.1cm}|>{\centering\arraybackslash}m{1.9cm}|>{\centering\arraybackslash}m{1.9cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}m{3.6cm}|}
+\hline
+\rowcolor{navy} \multicolumn{1}{|c|}{\hd{Scenario}} & \hd{30-year rate} & \hd{Probability} & \hd{Starts (avg.)} & \multicolumn{1}{c|}{\hd{Finished inventory}} & \multicolumn{1}{c|}{\hd{Margin vs prior year}} \\ \hline
+Upside & Below 6.25\% & About 12\% & 952K & Declines faster & Could stabilize \\ \hline
+\rowcolor{boxfill} Base & 6.25-8.00\% & About 73\% & 884K & Slow decline, above 2018-19 & 50-150 bps lower \\ \hline
+Downside & Above 8.00\% & About 15\% & 816K & Elevated or rising (to 121K) & 150-300 bps lower \\ \hline
+\end{tabularx}
+}
+\par\vspace{5pt}
+
+\begin{tcolorbox}[colback=stripfill,colframe=rule,boxrule=0.6pt,arc=0pt,left=7pt,right=7pt,top=5pt,bottom=5pt]
+\small
+\begin{minipage}[t]{0.475\linewidth}\raggedright
+{\bfseries\color{navy}Key assumptions}
+\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=3pt,parsep=0pt]
+\item Mortgage rates stay between 6.25\% and 8.00\% (about three in four; most likely 6.75-7.50\%).
+\item The 10-year Treasury yield and the mortgage spread hold near current levels.
+\item Unemployment stays in the low 4\% range (4.1\% in October).
+\item Builders keep using incentives, and starts follow the permit path.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.495\linewidth}\raggedright
+{\bfseries\color{navy}Risks that would change the view}
+\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=3pt,parsep=0pt]
+\item Unemployment rises toward 5\% while rates stay high: buyer income and loan qualification weaken together.
+\item Rates above 8\% (about one in seven): finished stock could rebuild toward 121K and discounts would likely deepen.
+\item Rates below 6.25\% (about one in eight): demand returns, incentives ease and margins could stabilize.
+\item Cost per home (land, materials, labor) rises faster: each 1\% takes about 80 bps off gross margin.
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+```

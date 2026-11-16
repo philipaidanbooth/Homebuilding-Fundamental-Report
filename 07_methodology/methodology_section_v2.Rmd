@@ -1,0 +1,155 @@
+---
+title: "Data & Methodology"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \setlength{\headsep}{8pt}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{10pt}{4pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{disclosure}{colback=gray!6,colframe=gray!55,boxrule=0.6pt,arc=0pt,left=6pt,right=6pt,top=5pt,bottom=5pt}
+  \renewcommand{\maketitle}{}
+---
+
+<!--
+Data & Methodology.
+In the merged report the driver supporting-analysis pages (A1, A2, A4) follow this file,
+then 06_appendix_sources/sources_section_v2.pdf.
+The trend-vs-no-change sentence reads ../01_affordability/outputs/dgs10_backtest.csv; tables are typed in.
+Packages: dplyr, readr, knitr, kableExtra. LaTeX: tcolorbox, fancyhdr, titlesec.
+-->
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({library(dplyr); library(readr); library(knitr); library(kableExtra)})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+source("../06_appendix_sources/cite.R")   # numbered citations: cite("key")
+col_spec <- function(...) if ("latex_valign" %in% names(formals(kableExtra::column_spec))) kableExtra::column_spec(..., latex_valign = "m") else kableExtra::column_spec(...)
+styled <- function(df, align, widths, bold_first = TRUE, font_size = 8.5, caption = NULL) {
+  k <- kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE, caption = caption) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  n <- length(widths)
+  for (i in seq_len(n)) k <- col_spec(k, i, width = paste0(widths[i], "cm"), bold = bold_first && i == 1,
+                                         border_left = i == 1, border_right = i == n)
+  k
+}
+tb <- function(...) tibble::tribble(...)
+
+bt <- read_csv("../01_affordability/outputs/dgs10_backtest.csv", show_col_types = FALSE)
+model_order <- c("Random walk (no change)", "ARIMA(1,1,1)", "Damped trend (Holt)",
+                 "Random walk with drift", "Linear trend (10y)")
+b6  <- bt %>% filter(horizon_months == 6)  %>% select(model, mae6 = mae)
+b12 <- bt %>% filter(horizon_months == 12) %>% select(model, mae12 = mae, rmse12 = rmse, ratio12 = mae_vs_rw)
+btab <- left_join(b6, b12, by = "model") %>%
+  mutate(model = factor(model, model_order)) %>% arrange(model) %>%
+  transmute(Model = as.character(model),
+            `MAE, 6m` = sprintf("%.2f", mae6), `MAE, 12m` = sprintf("%.2f", mae12),
+            `RMSE, 12m` = sprintf("%.2f", rmse12), `MAE vs no change, 12m` = sprintf("%.2f", ratio12))
+n_origins <- bt$origins[1]
+```
+
+```{=latex}
+\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}
+{\footnotesize\bfseries\color{teal}DATA \& METHODOLOGY}
+
+{\fontsize{20}{24}\selectfont\bfseries\color{navy} Data \& Methodology}
+
+\vspace{4pt}
+```
+
+All data are public and were downloaded November 9-11, 2026. Comparisons use each series' observation date, not the report date. Each driver folder holds the scripts, raw downloads, output CSVs and a verification log for every builder and release figure. Sources are listed on the final page.
+
+## Data scope
+
+```{r tbl-scope, results="asis"}
+sc <- tb(
+  ~`Series (IDs)`, ~`Publisher, frequency`, ~`Period and use`,
+  "Mortgage rate; 10-year Treasury (MORTGAGE30US; DGS10)", paste("Freddie Mac; Federal Reserve, via FRED. Weekly / daily", cite("freddie_pmms", "fed_h15")), "Through Nov 5, 2026. Rate range and Treasury backtest",
+  "Sales, permits, starts, months' supply (HSN1F; PERMIT1; HOUST1F; MSACSR)", paste("Census / HUD via FRED. Monthly, SAAR", cite("census_nrs", "census_nrc")), "Through Sep 2026. Drivers 1, 2, 4",
+  "Inventory by stage (NHFSEPCS; NHFSEPUCS; NHFSEPNTS; HNFSEPUSSA; NHSDPC)", paste("Census / HUD via FRED. Monthly", cite("census_nrs")), "Through Sep 2026. Finished inventory and implied inflows",
+  "New-home price; household income (MSPNHSUS; MEHOINUSA646N)", paste("Census via FRED. Monthly / annual", cite("census_nrs", "census_income")), "Sep 2026 price; 2025 income carried forward",
+  "Input prices (WPUIP2311101; WPU1017; WPU0811)", paste("BLS PPI via FRED. Monthly, NSA", cite("bls_ppi")), "Through Sep 2026. Goods inputs, steel, lumber",
+  "Earnings, job openings, unemployment (CES2000000003; CES0500000003; JTS2300JOL; UNRATE)", paste("BLS via FRED. Monthly", cite("bls_unrate", "bls_earnings", "bls_jolts")), "Through Oct 2026 (openings Sep)",
+  "Foreign-born construction workers", paste("BLS CPS. Annual", cite("bls_foreign_born")), "2025 exposure measure",
+  "Price-cut and incentive shares", paste("NAHB / Wells Fargo HMI. Monthly, NSA", cite("nahb_hmi")), "Jul 2022-Oct 2026; two months unpublished",
+  "Seven public builders", paste("Earnings releases and 10-Qs. Quarterly", cite("dhi_8k", "dhi_10q", "len_8k", "len_10q", "phm_8k", "phm_10q", "nvr_8k", "kbh_8k", "mth_release", "tol_release")), "Toll May-Jul; Lennar, KB Jun-Aug; others Jul-Sep 2026",
+  "Property tax; affordability cross-check", paste("ATTOM 2025", cite("attom_tax"), "; Atlanta Fed HOAM", cite("atl_hoam")), "0.90% tax rate; HOAM through Aug 2026",
+  "Builder finished specs, four builders (Exhibit A2.1)", paste("Quarterly filings, 2019-2026", cite("builder_filings_hist")), "Transcribed with AI assistance; 22 figures checked against the filings, all matching")
+cat(styled(sc, c("l", "l", "l"), c(6.4, 4.8, 5.4), font_size = 7.5,
+           caption = "Exhibit 9.0. Data scope. Census and FRED series are current vintage and subject to revision."))
+```
+
+## Driver 1: affordability and the rate range
+
+**Affordability.** Payment = principal and interest on a 30-year fixed loan with 20% down, plus property tax at 0.90% of price and insurance at an assumed 0.50%, divided by median household income. October 2026 applies the October rate to the September median new-home price, with 2025 income carried forward. The 36.6% burden against 29.9% in 2018-19 is a national-median illustration; it tracks the Atlanta Fed HOAM index closely (correlation 0.87 in levels, 0.90 in 12-month changes), so the direction is the robust part.
+
+**Rate range and scenarios.** The rate in h weeks is centered on the latest weekly reading, with the standard deviation of weekly changes over 1971-2026 scaled by the square root of h (normal errors, constant volatility). Upside is below 6.25% (about 12%), base 6.25-8.00% (about 73%, of which 6.75-7.50% is about 37%), downside above 8.00% (about 15%). The boundaries are reporting choices, and the weights describe the rate 52 weeks out, not the probability of the industry outcomes paired with each scenario. The full-history 80% range covered 82% of 12-month outcomes, against 66% for a two-year-volatility range (Exhibit A1.1).
+
+A forecast that extends the recent trend in the 10-year Treasury yield missed by about `r sprintf("%.2f", bt$mae[bt$horizon_months == 12 & bt$model == "Linear trend (10y)"])` points on average at 12 months over 1990-2026, against `r sprintf("%.2f", bt$mae[bt$horizon_months == 12 & bt$model == "Random walk (no change)"])` for assuming no change. The rate range is therefore centered on today's rate.
+
+**Rate drops and sales.** 12-month change in log new-home sales on the change in the mortgage rate and in unemployment. Since 2000 a 1-point rate drop goes with +5.6% sales (95% interval +1.9% to +9.4%, R-squared 0.05; +8.8% over 1976-2026); the six-month lag is not significant. The subsidy illustration is the present value of 84 months of payment savings at 6.00%, as a share of price -- not a builder's buydown cost.
+
+## Driver 2: inventory
+
+**Price cuts and supply.** Monthly OLS of the share of builders cutting prices on months' supply, Jul 2022-Sep 2026 (n = 49). Each month of finished supply goes with about 9.1 points more builders cutting (R-squared 0.42); total supply shows nothing. The result holds with lags and a rate control but not in first differences (p = 0.27), so it is a hypothesis to monitor, not a causal estimate (Exhibit A2.1).
+
+**Finished-inventory outlook.** An identity, not a forecast: ending stock = beginning stock + homes entering finished inventory - finished homes sold, with inflow backed out of the last 12 months. From 111K, repeating last year's flows ends near 100K by September 2027; a smaller construction pipeline gives about 83K and weaker finished sales about 121K. These are not outputs of the rate scenarios.
+
+## Driver 3: build costs
+
+**Implied cost per home** = average selling price x (1 - gross margin); the seven-builder median change is +1.3%. Because it is derived from margin, "cost fell less than price" restates "margin fell"; the independent evidence is goods-input PPI (+8.7% y/y) and builder land commentary, used directionally.
+
+**Margin arithmetic.** New margin = 1 - (1 - GM) x (1 + c) / (1 + p) for price change p and cost change c, holding mix constant. Each 1% of price or cost is about 80 bps; from 19.6%, price -1.0% and cost +0.5% give -122 bps.
+
+## Driver 4: margins and starts
+
+**Starts model.** 3-month-average starts = 35.5 + 0.647 x 3-month-average permits + 0.332 x lagged starts (K, SAAR), Apr 2018-Sep 2026, 102 months. Out of sample (33 target months), holding permits flat gives 6.9% MAPE at 12 months against 7.9% for no change; with actual permits it is 2.2%. The plotted band (±31K, about 63K wide) is model error given permits, which is why the 103K base-to-upside gap sits outside it; with permits held flat the equivalent is about ±130K. The model turns assumed permit paths into starts and does not forecast permits: shifting every forward permit input by 50K moves average starts by about 42-43K, so most of the scenario gap is the permit assumption.
+
+## Limitations
+
+- National medians are not matched new-home buyers; 2025 income is carried forward and insurance is assumed.
+- Seven public builders are not the industry; quarters, margin definitions, incentives and impairment accounting differ.
+- The rate range assumes a stable distribution of weekly changes; no joint rate, demand, permits or margin model is estimated.
+- The price-cut relationship is correlational and does not survive first differencing; NAHB shares are not seasonally adjusted.
+- The inventory outlook and starts paths are conditional on assumed flows and permits; long-horizon starts errors overlap (about three independent annual observations).
+- Permit paths, margin ranges and monitoring thresholds are judgments.
+
+## AI use disclosure
+
+```{=latex}
+\begin{disclosure}
+```
+
+AI was used as an assistant throughout this project. Anthropic's Claude helped gather publicly available data, wrote the Python scripts used to clean and transform it, assisted in implementing the models the author specified, and helped produce the R (ggplot2) figures. OpenAI's ChatGPT assisted with R Markdown editing, checking code against outputs, the permit sensitivity and table formatting. Both were used to edit and tighten language. All analytical choices, judgments and conclusions are the author's own; no nonpublic information was used, and all data, code and outputs are included for review.
+
+```{=latex}
+\end{disclosure}
+```
+
+\vspace{6pt}
+
+\vspace{6pt}
+
+# Supporting analysis
+
+*The second half of Data & Methodology: the technical charts and tables behind the driver sections, grouped by driver. Driver 1 (A1.1-A1.2) covers range coverage and the rate-sales regression. Driver 2 (A2.1) covers the price-cut tests. Driver 4 (A4.1-A4.3) covers permit paths, the starts-model out-of-sample test and builder margin definitions. Methods and limitations are above; sources follow.*

@@ -1,0 +1,59 @@
+metric,value,source,obs_date
+current_month,2026-10,latest complete MORTGAGE30US month,2026-10
+current_mortgage_rate_monthly_avg,7.328,MORTGAGE30US (monthly mean),2026-10
+current_ust10_monthly_avg,5.130952380952381,DGS10 (monthly mean),2026-10
+current_mortgage_spread,2.197047619047619,MORTGAGE30US - DGS10,2026-10
+current_price_used,400400.0,MSPNHSUS (latest published),2026-09
+current_pi_payment,2202.1192467951423,"est.: 2026-10 rate, 2026-09 MSPNHSUS price carried forward",2026-10
+current_total_payment,2669.2525801284755,"est.: 2026-10 rate, 2026-09 MSPNHSUS price carried forward",2026-10
+current_hh_income_nowcast,91197.9145228785,calc: MEHOINUSA646N x CES0500000003 growth,2026-10
+current_wage_proxy_income,79040.0,CES0500000003 x 2080,2026-10
+current_total_to_income,0.36623634760509616,"est.: 2026-10 rate, 2026-09 MSPNHSUS price carried forward",2026-10
+current_total_to_income_nowcast,0.35122547625259776,"est.: 2026-10 rate, 2026-09 MSPNHSUS price carried forward",2026-10
+current_total_to_income_wage,0.4052508977927847,"est.: 2026-10 rate, 2026-09 MSPNHSUS price carried forward",2026-10
+current_total_to_income_1y_ago,0.33799100566055423,calc (observed),2025-10
+current_mortgage_rate_1y_ago,6.254,MORTGAGE30US (monthly mean),2025-10
+latest_month_with_price,2026-09,MSPNHSUS,2026-09
+mortgage_rate_monthly_avg,6.8625,MORTGAGE30US (monthly mean),2026-09
+mortgage_rate_latest_week,7.18,MORTGAGE30US,2026-11-05
+ust10_monthly_avg,4.989047619047619,DGS10 (monthly mean),2026-09
+mortgage_spread,1.873452380952381,MORTGAGE30US - DGS10,2026-09
+median_new_price,400400.0,MSPNHSUS,2026-09
+median_new_price_quarterly,393300.0,MSPUS (quarter containing month),2026-09
+pi_payment,2101.599654962123,"calc: MSPNHSUS, MORTGAGE30US, 20% down",2026-09
+total_payment,2568.732988295457,calc: + tax 0.90% (ATTOM) + ins 0.50% (placeholder),2026-09
+total_payment_alt_insurance,2607.732988295457,calc: insurance at Bankrate-implied 0.62%,2026-09
+median_hh_income_used,87460.0,MEHOINUSA646N (2025),2026-09
+hh_income_nowcast,90861.92220621527,calc: MEHOINUSA646N x CES0500000003 growth,2026-09
+wage_proxy_income,78748.8,CES0500000003 x 2080,2026-09
+pi_to_income,0.2883511989428936,calc,2026-09
+total_to_income,0.35244449873708533,calc,2026-09
+total_to_income_nowcast,0.3392487756266833,calc,2026-09
+total_to_income_wage,0.39143194384607105,calc,2026-09
+total_to_income_1y_ago,0.3514649945476086,calc,2025-09
+total_to_income_2018_19_avg,0.2989256658294885,calc,2018-01..2019-12
+total_to_income_peak,0.4766284464854972,calc,2022-10
+months_supply,8.4,MSACSR,2026-09
+saving_rate,3.8,PSAVERT,2026-09
+ref_price,400400,MSPNHSUS,2026-09
+pi_at_6.00,1920.4802421693112,scenario calc on ref_price,assumption
+pi_at_7.18,2169.959253381231,scenario calc on ref_price,assumption
+pi_gap_7.18_vs_6.00,249.4790112119199,scenario calc,assumption
+pi_gap_pct,0.12990449249824954,scenario calc,assumption
+price_supported_at_7.18_with_6pct_payment,354366.2341891434,scenario calc,assumption
+buydown_cost_pv_84m,16433.825412823535,scenario calc,assumption
+buydown_cost_pv_84m_pct_price,0.04104352001204679,scenario calc,assumption
+buydown_cost_pv_360m,36827.012648685246,scenario calc,assumption
+total_to_income_at_7.18_sep_price,0.3618238170657989,"scenario calc, MEHOINUSA646N 2025",assumption
+total_to_income_at_7.18_sep_price_nowcast,0.3469938014057994,"scenario calc, nowcast income 2026-10",assumption
+hoam_latest,0.4391927299212122,Atlanta Fed HOAM,2026-08
+nahb_hmi_latest,29,NAHB HMI Table 2,2026-10
+nahb_share_cut_prices,43.0,NAHB HMI release (manual),2026-10
+nahb_avg_price_cut,6.0,NAHB HMI release (manual),2026-10
+nahb_share_incentives,65.0,NAHB HMI release (manual),2026-10
+hoam_overlap,2018-01 to 2026-08,calc,
+hoam_n_months,104,calc,
+hoam_corr_levels,0.8707015326101616,calc,
+hoam_corr_12m_change,0.9026661721551034,calc,
+hoam_sign_agree_12m,0.7934782608695652,calc,
+hoam_sign_agree_1m,0.5825242718446602,calc,

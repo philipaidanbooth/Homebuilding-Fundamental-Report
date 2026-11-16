@@ -1,0 +1,14 @@
+metric,value,unit,basis
+asp_q3fy26,372000.0,$,"Observed (draft, Lennar 8-K)"
+asp_q3fy25,383000.0,$,"Observed (draft, Lennar 8-K)"
+gross_margin_q3fy26,15.8,%,"Observed (draft, Lennar 8-K)"
+gross_margin_q3fy25,17.5,%,"Observed (draft, Lennar 8-K)"
+q4_gm_guide_low,15.5,%,"Observed (draft, Lennar 8-K)"
+q4_gm_guide_high,16.0,%,"Observed (draft, Lennar 8-K)"
+construction_cost_per_sqft_yoy,-6.0,%,"Observed (draft, Lennar 8-K)"
+homesites_owned_or_controlled,488000.0,count,"Observed (draft, Lennar 8-K)"
+homesites_owned_share_max,2.5,% (under),"Observed (draft, Lennar 8-K)"
+implied_cost_of_sales_q3fy26,313224.0,$,Calc: ASP x (1 - gross margin)
+implied_cost_of_sales_q3fy25,315975.0,$,Calc: ASP x (1 - gross margin)
+implied_cost_yoy_pct,-0.9,%,Calc
+asp_yoy_pct,-2.9,%,Calc

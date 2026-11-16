@@ -1,0 +1,6 @@
+Driver 2 flags, built 2026-11-10
+- NAHB backfill rows come from the STAGING file (AI-transcribed, not yet spot-checked). Check them against verbatim_quote, then save as data/manual/nahb_price_cuts_backfill.csv.
+- NAHB price-cut share missing for 2 month(s): 2022-10, 2023-01
+- Exhibit 2.5 leaves out builders whose last published count is older than 2026-02-28: Lennar (2025-05-31), Meritage Homes (2024-09-30).
+- Builder spec counts come from the STAGING file. Check against verbatim_quote/source_url, then save as data/manual/builder_completed_specs.csv.
+- Builder spec definitions differ (17 distinct wordings). Compare changes within a builder, not levels across builders.

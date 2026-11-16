@@ -1,0 +1,19 @@
+Driver 2 data flags, built 2026-11-10 by scripts/d2_build_data.py
+- NAHB: Driver 1 file and backfill agree on every month where both have a price-cut share (Driver 1 value used anyway).
+- NAHB price-cut share missing for months: 2022-10, 2023-01 (no row in either file; not interpolated).
+- NAHB backfill file is a STAGING file (AI-transcribed, not spot-checked against verbatim_quote). 38 of 50 price-cut months come from it; the rest from the Driver 1 hand-entered file. NAHB values are as first published (e.g. 2022-09 kept at 24 although NAHB later restated 26).
+- Test results recomputed in Python match the R outputs (test_price_cuts_vs_supply.csv, test_proxy_price_vs_supply.csv) to better than 1e-6 relative; the R outputs do not store the intercept (added here).
+- Models (c)-(e) lag/difference by NAHB ROW as the Rmd does; across the missing 2022-10 and 2023-01 months, (c) lags 2 months and (d)/(e) are blanked by the <=31-day rule. n: (a),(b)=49, (c)=49 (includes Oct-2026 against Sep-2026 supply), (d),(e)=46.
+- Stage sum vs HNFSEPUSSA total: 0 months since 1999 differ by more than 2k (rounding only). total_k is the Census total series, not the stage sum.
+- FHFA NMDB last observation is 2026-06 (quarter end; share 65.6%), about 4 months behind Census (Sep-2026) and 4 behind Realtor.com (Oct-2026). Lock-in share lags the other series; Q3-2026 not yet published.
+- Realtor.com ACTLISCOUUS is NOT seasonally adjusted: compare same calendar month (listings_same_month_2019, yoy), not adjacent months. listings_12m_avg is a trailing mean and is blank until 12 months exist. For 2019 rows the 2019 column equals the row's own value.
+- Builder spec counts (d2_builder_specs.csv) come from builder_completed_specs_STAGING.csv: AI-transcribed, NOT spot-checked against filings. Copied from outputs/builder_specs_per_closing_ts.csv without recalculation.
+- Builders that no longer publish a recent count (last count older than 7 months before latest): Lennar (last 2025-05-31); Meritage Homes (last 2024-09-30). In the per-closing series only builders with 8+ quarters appear.
+- Builder spec definitions differ by builder (and wording changes within builders); compare each builder with itself only. NVR, KB Home and Century do not disclose a comparable count.
+- d2_builder_specs.csv builders and last period: D.R. Horton 2026-09-30; Meritage Homes 2024-09-30; PulteGroup 2026-09-30; Toll Brothers 2026-07-31.
+- Not computed: single-family starts as % of for-sale inventory. Starts are an annualized flow (SAAR, 1-unit) while for-sale inventory is a stock by stage; a ratio of the two has no clean interpretation, so it was skipped rather than shown.
+- Observed vs Calc: Observed = value as published by source; Calc = derived here. 2018-19 averages are simple means of monthly values.
+- NAHB Oct-2026 survey vs Census Sep-2026: Census new-home inventory for Oct-2026 is not yet published, so the latest NAHB reading has no same-month supply. The Oct gap vs the model uses Sep inventory (one month older) and is not a like-for-like residual.
+- Models are monthly OLS on a short sample (n=49), with strongly trending series; Newey-West errors help with autocorrelation and the level fit in (b) may partly reflect two trending series (the change-on-change models (d),(e) are not significant). Test, not a forecast. Models (a),(c),(d),(e) show no significant relationship.
+- Proxy models: median new-home price is mix-sensitive and MSPNHSUS is NSA; yoy uses a 3-month average; Newey-West lag 18. These are not price-cut measures.
+- FRED series are current vintage (revised); HSN1F and inventory series are revised by Census, so recomputing later may change numbers slightly. PERMIT1 and HOUST1F downloaded 2026-11-10 with default curl user agent.

@@ -1,0 +1,232 @@
+---
+title: "Industry Primer: Current State"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: true
+geometry: "left=0.75in,right=0.75in,top=0.6in,bottom=0.65in"
+fontsize: 10pt
+mainfont: Arial
+header-includes: |
+  \usepackage{caption}
+  \captionsetup{labelformat=empty, font={small,it}, justification=centering}
+  \captionsetup[figure]{font={footnotesize,it}}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{xcolor}
+  \definecolor{navy}{HTML}{1F3350}
+  \definecolor{teal}{HTML}{3F8F86}
+  \definecolor{calloutfill}{HTML}{FFF3CD}
+  \definecolor{calloutline}{HTML}{D39B2F}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\footnotesize\color{gray}U.S. Homebuilding Fundamentals | November 12, 2026}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \setlength{\headsep}{8pt}
+  \usepackage{titlesec}
+  \titleformat{\section}{\color{navy}\Large\bfseries}{}{0pt}{}
+  \titleformat{\subsection}{\color{navy}\large\bfseries}{}{0pt}{}
+  \titlespacing*{\subsection}{0pt}{6pt}{2pt}
+  \setlength{\intextsep}{3pt}
+  \usepackage[most]{tcolorbox}
+  \newtcolorbox{callout}{colback=calloutfill,colframe=calloutline,boxrule=0.6pt,arc=0pt,left=6pt,right=6pt,top=3pt,bottom=3pt}
+  \renewcommand{\maketitle}{}
+  \AtBeginDocument{\small}
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({library(knitr); library(kableExtra)})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+source("../06_appendix_sources/cite.R")   # numbered citations: cite("key")
+# master builder table (the same file Driver 4 reads), so the primer and Driver 4 always agree
+mb <- read.csv("../data_ready/builders_latest_quarter.csv", stringsAsFactors = FALSE, check.names = FALSE, fileEncoding = "UTF-8-BOM")
+mb <- mb[match(c("D.R. Horton", "Lennar", "PulteGroup", "NVR", "KB Home", "Meritage Homes", "Toll Brothers"), mb$builder), ]
+mb_w  <- mb$rev_musd / sum(mb$rev_musd)                     # revenue weights
+ord_w <- sum(mb_w * mb$orders_yoy_pct)                      # revenue-weighted orders, % y/y
+gm_w  <- sum(mb_w * mb$gm_change_bps)                       # revenue-weighted gross-margin change, bps
+pct1  <- function(x) sprintf("%+.1f%%", x)
+bps10 <- function(x) sprintf("%+.0f bps", 10 * round(x / 10))
+d3 <- read.csv("../03_costs/outputs/d3_bridge_numbers.csv", stringsAsFactors = FALSE, fileEncoding = "UTF-8-BOM")
+d3v <- function(n) suppressWarnings(as.numeric(d3$value[d3$name == n]))
+d2 <- read.csv("../02_inventory/outputs/d2_key_numbers.csv", stringsAsFactors = FALSE, fileEncoding = "UTF-8-BOM")
+d2v <- function(n) suppressWarnings(as.numeric(d2$value[d2$name == n]))
+com3 <- read.csv("../03_costs/outputs/d3_filing_commentary.csv", stringsAsFactors = FALSE, fileEncoding = "UTF-8-BOM")
+n_land <- sum(tolower(as.character(com3$cites_land_or_lot_cost)) == "true")   # builders citing higher land or lot costs
+n_close_down <- sum(mb$closings_yoy_pct < 0)                                   # builders with closings down y/y
+NAVY <- "#1f3350"; RED <- "#b5524f"
+# bordered grid (light grey rules on every cell), navy header, bold first column: same look as the driver sections
+# column_spec with cell text centred vertically (needs kableExtra 1.2+; falls back to top-aligned on older versions)
+col_spec <- function(...) if ("latex_valign" %in% names(formals(kableExtra::column_spec))) kableExtra::column_spec(..., latex_valign = "m") else kableExtra::column_spec(...)
+styled <- function(df, align, widths, bold_first = TRUE, font_size = 8) {
+  k <- kable(df, format = "latex", booktabs = FALSE, align = align, escape = TRUE) %>%
+    kable_styling(latex_options = "HOLD_position", font_size = font_size, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  n <- length(widths)
+  for (i in seq_len(n)) k <- col_spec(k, i, width = paste0(widths[i], "cm"), bold = bold_first && i == 1,
+                                         border_left = i == 1, border_right = i == n)
+  k
+}
+strip_tbl <- function(labels, values, colors = rep(NAVY, length(values))) {
+  cells <- mapply(function(v, c) cell_spec(v, "latex", bold = TRUE, color = c, font_size = 15), values, colors)
+  df <- as.data.frame(setNames(as.list(unname(cells)), labels), check.names = FALSE, stringsAsFactors = FALSE)
+  k <- kable(df, format = "latex", booktabs = TRUE, align = "c", escape = FALSE, linesep = "") %>%
+    kable_styling(latex_options = "hold_position", font_size = 8.5, full_width = FALSE, position = "center") %>%
+    row_spec(0, bold = TRUE, color = "white", background = "#1f3350")
+  for (i in seq_along(values)) k <- column_spec(k, i, width = "3.2cm")
+  k
+}
+```
+
+```{=latex}
+\arrayrulecolor[HTML]{C9CED6}\setlength{\arrayrulewidth}{0.6pt}
+{\footnotesize\bfseries\color{teal}INDUSTRY PRIMER | CURRENT STATE}
+
+{\fontsize{18}{21}\selectfont\bfseries\color{navy} Industry Primer: Current State}
+
+\vspace{3pt}
+\begin{callout}
+```
+
+Mortgage rates have risen from 6.0% in March 2026 to 7.18% in early November 2026, limiting affordability and forcing builders to rely on more price cuts and continued incentives, such as mortgage-rate buydowns, to maintain sales volumes. These measures compress gross margins but also help builders gradually reduce excess inventory.
+
+```{=latex}
+\end{callout}
+\vspace{3pt}
+```
+
+## How to read the industry
+
+```{=latex}
+\vspace{4pt}
+{\small\bfseries\color{navy} Key Industry Players}
+\vspace{2pt}
+```
+
+```{r players}
+df <- data.frame(
+  Builder = c(mb$builder, "Total"),
+  `Revenue ($bn)` = c(sprintf("%.1f", mb$rev_musd / 1000), sprintf("%.1f", sum(mb$rev_musd) / 1000)),
+  `Primary buyer tier` = c("Entry-level / first move-up", "First-time / first move-up", "First-time, move-up, active adult",
+                           "First-time / move-up", "Entry-level / first move-up", "Entry-level / first move-up", "Luxury / affluent", "Total closings; weighted orders and margin"),
+  `Closings y/y` = c(pct1(mb$closings_yoy_pct), pct1(100 * (sum(mb$closings) / sum(mb$closings_prior) - 1))),
+  `Orders y/y` = c(pct1(mb$orders_yoy_pct), pct1(ord_w)),
+  `Gross margin y/y` = c(bps10(mb$gm_change_bps), bps10(gm_w)),
+  check.names = FALSE, stringsAsFactors = FALSE)
+styled(df, align = c("l", "r", "l", "r", "r", "r"), widths = c(2.8, 2.0, 4.8, 2.0, 2.0, 2.6)) %>%
+  row_spec(8, bold = TRUE, background = "#e8eef6")
+
+```
+
+```{=latex}
+\vspace{-8pt}
+{\footnotesize\itshape\color{gray} Exhibit 1. Seven large public builders, latest quarter. Revenue = home-sales revenue (weighting only). Closings = homes delivered. Tier is the author's classification.}
+```
+
+These seven builders span every buyer tier, from entry-level volume builders like D.R. Horton and KB Home to Toll Brothers at the luxury end, and together booked about $`r sprintf("%.0f", sum(mb$rev_musd) / 1000)`bn in home-sales revenue last quarter. Read together, they give an industry-level picture, and the pressure is broad rather than company-specific: orders are down at `r sum(mb$orders_yoy_pct < 0)` of the seven (`r pct1(ord_w)` revenue-weighted) and gross margins are down at `r sum(mb$gm_change_bps < 0)` (`r bps10(gm_w)`).
+
+```{=latex}
+\vspace{4pt}
+{\small\bfseries\color{navy} Homebuilder Cycle}
+\vspace{2pt}
+```
+
+```{r cycle}
+# How pressure moves through a homebuilder.
+df <- data.frame(
+  Stage = c("Land", "Orders", "Backlog and closings", "Finished inventory", "Gross margin", "New starts"),
+  `What happens` = c(
+    "Builders buy land, or hold options to buy it, well before a home is sold",
+    "A buyer signs a contract; orders show current demand",
+    "Homes under contract are built and delivered; closings become revenue",
+    "Homes completed before a buyer is found sit unsold",
+    "What is left of the selling price after land and construction costs",
+    "Builders decide how many new homes to begin"),
+  `Why it matters now` = c(
+    sprintf("%d of %d large builders report higher land or lot costs", n_land, nrow(mb)),
+    sprintf("Builder orders are down %.1f%% as rates near 7%% cut the number of qualified buyers", abs(ord_w)),
+    sprintf("Deliveries continue from earlier contracts, so activity slows gradually; closings are down at %s builders", if (n_close_down == nrow(mb)) paste("all", nrow(mb)) else paste(n_close_down, "of", nrow(mb))),
+    sprintf("%.0fK finished unsold homes, %.0f%% above 2018-19; builders move them with price cuts and incentives", d2v("completed_for_sale_k"), d2v("completed_pct_above_2018_19_avg")),
+    sprintf("Prices and incentives adjust faster than costs: gross margin is down %.0f bps", abs(10 * round(gm_w / 10))),
+    "Permits are down 4.7%; builders are planning fewer homes to control future supply"),
+  check.names = FALSE, stringsAsFactors = FALSE)
+styled(df, align = c("l", "l", "l"), widths = c(2.9, 6.0, 8.1))
+```
+
+```{=latex}
+\vspace{2pt}
+{\small\bfseries\color{navy} Housing Market Snapshot}
+\vspace{2pt}
+```
+
+```{r snapshot}
+# Activity and supply: 2018-19 average (the report's baseline), the same month a year ago, and the latest month.
+rd <- function(pat) { f <- sort(Sys.glob(pat)); x <- read.csv(f[length(f)], stringsAsFactors = FALSE)
+  names(x) <- c("date", "v"); x$date <- as.Date(x$date); x$v <- suppressWarnings(as.numeric(x$v)); x[!is.na(x$v), ] }
+h4 <- read.csv("../04_margins/outputs/d4_history.csv", stringsAsFactors = FALSE); h4$date <- as.Date(h4$date)
+ser <- list(
+  `New-home sales`        = rd("../01_affordability/data/raw/HSN1F_*.csv"),
+  `Permits`               = data.frame(date = h4$date, v = h4$permits)[!is.na(h4$permits), ],
+  `New starts`            = data.frame(date = h4$date, v = h4$starts)[!is.na(h4$starts), ],
+  `Finished unsold homes` = rd("../02_inventory/data/raw/NHFSEPCS_*.csv"),
+  `Months' supply`        = rd("../01_affordability/data/raw/MSACSR_*.csv"))
+snap_now <- min(as.Date(sapply(ser, function(x) as.character(max(x$date)))))   # latest month all five series have
+snap_ya  <- seq(snap_now, length.out = 2, by = "-1 year")[2]
+at   <- function(x, d) x$v[x$date == d]
+base <- sapply(ser, function(x) mean(x$v[x$date >= as.Date("2018-01-01") & x$date <= as.Date("2019-12-01")]))
+ya   <- sapply(ser, at, snap_ya); now <- sapply(ser, at, snap_now)
+fk   <- function(x, i) ifelse(i == 5, sprintf("%.1f", x), sprintf("%.0fK", x))
+yoy  <- 100 * (now / ya - 1); vb <- 100 * (now / base - 1)
+df <- data.frame(
+  Metric = names(ser),
+  b = fk(base, 1:5), y = fk(ya, 1:5), n = fk(now, 1:5),
+  `What it shows` = c(
+    sprintf("Demand is weaker than a year ago (%s)", pct1(yoy[1])),
+    sprintf("Builders are planning fewer homes (%s y/y)", pct1(yoy[2])),
+    sprintf("Starts have not fallen yet (%s y/y; %s vs 2018-19)", pct1(yoy[3]), pct1(vb[3])),
+    sprintf("%.0f%% above 2018-19: the excess builders must clear", vb[4]),
+    sprintf("%.1f months above the 2018-19 norm", now[5] - base[5])),
+  check.names = FALSE, stringsAsFactors = FALSE)
+names(df)[2:4] <- c("2018-19 average", format(snap_ya, "%b %Y"), format(snap_now, "%b %Y"))
+styled(df, align = c("l", "r", "r", "r", "l"), widths = c(3.6, 2.3, 1.8, 1.8, 7.5))
+```
+
+```{=latex}
+\vspace{-8pt}
+{\footnotesize\itshape\color{gray} Exhibit 2. Activity and supply. Sales, permits and starts are single-family, annual rates. The 2018-19 average is this report's baseline; the monthly figures are seasonally adjusted and subject to revision. Source: Census Bureau and HUD.}
+\vspace{4pt}
+```
+
+Higher interest rates are working through each stage of the homebuilding cycle (figures in Exhibit 2). **Land:** costs are not adjusting down with demand; `r n_land` of `r nrow(mb)` large builders report higher land or lot costs. **Orders:** fewer buyers qualify at 7%+, so new-home sales are below a year ago and builder sentiment (HMI) has fallen to 29. `r cite("census_nrs", "nahb_hmi")` **Backlog and closings:** builders are still delivering homes from earlier contracts, so activity slows gradually rather than stopping: closings fell at all `r n_close_down` builders, by a median of `r sprintf("%.1f", abs(median(mb$closings_yoy_pct)))`%. **Finished inventory:** finished unsold homes and months' supply are well above 2018-19, so builders are using incentives and price cuts to move them. **Gross margin:** those price cuts and incentives compress margins, down `r sprintf("%.0f", abs(10 * round(gm_w / 10)))` bps across the seven large builders. **New starts:** builders are pulling fewer permits to control future supply, although starts have not fallen yet. `r cite("census_nrc")` The housing market is adjusting, not collapsing: builders are still selling homes, but at the cost of margin, as they work down excess inventory.
+
+## Four drivers
+
+```{r drivers}
+df <- data.frame(
+  Priority = c("1", "2", "3", "4"),
+  Driver = c("Affordability is the binding constraint", "Inventory forces the discounting",
+             "Costs are not providing relief", "Margins are where it all shows up"),
+  `Current signal` = c("Rate up 118 bps since March to 7.18%; payment about $250/month higher",
+                       "111K finished unsold homes, 54% above 2018-19; 65% of builders using incentives",
+                       sprintf("Builders' cost per home %+.1f%% y/y, with input prices up %.1f%%", d3v("cost_per_home_yoy_median_pct"), d3v("goods_input_ppi_yoy_pct")),
+                       sprintf("Seven builders: gross margin down %.0f bps, orders down %.1f%%", abs(10 * round(gm_w / 10)), abs(ord_w))),
+  `Why it matters now` = c(
+    "Fewer buyers qualify, so orders fall, incentives rise and margins shrink",
+    "Rates will not clear finished homes, so builders do, with incentives and price cuts",
+    "Lot and input costs stay high while revenue per home falls",
+    "Incentives cut revenue while costs hold, so margin stays below last year"),
+  check.names = FALSE, stringsAsFactors = FALSE)
+styled(df, align = c("c", "l", "l", "l"), widths = c(1.2, 3.6, 5.8, 6.0)) %>%
+  row_spec(1, background = "#e8eef6")
+```
+
+```{=latex}
+\vspace{-8pt}
+{\footnotesize\itshape\color{gray} Sources: Freddie Mac PMMS `r cite("freddie_pmms")`; Census and HUD `r cite("census_nrs", "census_nrc")`; NAHB HMI `r cite("nahb_hmi")`; builder earnings releases and filings `r cite("dhi_8k")`-`r cite("tol_release")`.}
+```
+
+- **Affordability:** Mortgage rates near 7% leave the monthly payment about $250 higher than in March, so fewer buyers qualify and builders must sell with incentives.
+- **Inventory:** With rates unlikely to clear the `r sprintf("%.0f", d2v("completed_for_sale_k"))`K finished unsold homes, up `r sprintf("%.0f", d2v("completed_pct_above_2018_19_avg"))`% from the 2018-19 average, builders have to clear them themselves through price cuts and incentives, which hurts profitability.
+- **Costs:** Land, materials and labor are not getting cheaper, so lower revenue per home against costs that stay high results in reduced margin and income.
+- **Margins:** Incentives hit revenue when costs continue to rise, negatively impacting margins.
