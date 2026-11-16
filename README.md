@@ -10,7 +10,7 @@ A one-week case study on the fundamentals of U.S. homebuilding: what's driving t
 | Folder | What it covers |
 |---|---|
 | `00_primer` | Homebuilding industry primer |
-| `01_affordability` | Mortgate Rates |
+| `01_affordability` | Mortgate rates |
 | `02_inventory` | New vs. existing home supply |
 | `03_costs` | Land, labor and materials |
 | `04_margins` | How builder profitability is holding up |
